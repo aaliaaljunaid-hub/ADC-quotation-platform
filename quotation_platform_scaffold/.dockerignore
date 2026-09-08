@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+quotation.db
+uploaded_assets/
+.env
+.git/

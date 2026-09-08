@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: quotation_platform
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/quotation_platform
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set a real secret in .env or the shell environment}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_PRICE_ID: ${STRIPE_PRICE_ID:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STORAGE_BACKEND: ${STORAGE_BACKEND:-local}
+      S3_BUCKET: ${S3_BUCKET:-}
+      S3_REGION: ${S3_REGION:-}
+      S3_ENDPOINT_URL: ${S3_ENDPOINT_URL:-}
+      S3_PUBLIC_BASE_URL: ${S3_PUBLIC_BASE_URL:-}
+    ports:
+      - "8000:8000"
+    volumes:
+      - uploaded_assets:/app/uploaded_assets
+
+volumes:
+  pgdata:
+  uploaded_assets:

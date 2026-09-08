@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+pydantic
+python-docx
+sqlalchemy
+python-multipart
+pyjwt
+stripe
+openpyxl
+alembic
+boto3

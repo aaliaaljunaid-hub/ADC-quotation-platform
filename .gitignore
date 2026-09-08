@@ -1,0 +1,32 @@
+# Real client/business data — never belongs in the repo
+*.xlsx
+*.xlsm
+*.docx
+*.pdf
+
+# Machine-specific local dev tooling (hardcoded paths to this machine's
+# portable Node/Python installs — meaningless on any other machine)
+run_frontend_dev.ps1
+.claude/
+
+# Unused exploration artifacts (logos extracted for a demo; not referenced
+# by any app code path — uploaded logos live in uploaded_assets/ instead)
+/assets/
+
+# Backend
+quotation_platform_scaffold/__pycache__/
+quotation_platform_scaffold/**/__pycache__/
+quotation_platform_scaffold/*.pyc
+quotation_platform_scaffold/.venv/
+quotation_platform_scaffold/venv/
+quotation_platform_scaffold/quotation.db
+quotation_platform_scaffold/uploaded_assets/
+quotation_platform_scaffold/.env
+quotation_platform_scaffold/*.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/*.tsbuildinfo
+frontend/.env
+frontend/.env.local
