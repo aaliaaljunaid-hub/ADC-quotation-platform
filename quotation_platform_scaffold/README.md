@@ -112,6 +112,18 @@ grand total matched the values traced by hand from the `ADC` sheet exactly (506.
 50.600 / 556.600), and re-importing correctly updated rather than duplicated the 4 catalog
 items. See `app/xlsx_importer.py` for the exact column mapping.
 
+## Converting reference documents to Markdown
+`POST /accounts/{account_id}/import/document-markdown` (multipart file upload) runs a
+supplier quote, client brief or third-party BOQ (`.pdf`, `.docx`, `.xlsx`, `.pptx`, `.csv`,
+`.txt`, `.md`, `.html`, `.json`, `.xml`; 20 MB max) through Microsoft's
+[markitdown](https://github.com/microsoft/markitdown) and returns
+`{filename, title, markdown, character_count}` — headings, lists and tables preserved, so
+spreadsheet sheets come back as Markdown tables. It's a read-only reference tool: nothing is
+saved and nothing touches the catalog or a quote (use the workbook import above for that), so
+it's open to any team member and not subscription-gated. markitdown plugins and LLM image
+captioning are disabled, so conversion runs locally and the upload never leaves the server.
+See `app/document_converter.py`.
+
 Estimation aids, independent of the flow above:
 - `GET/POST/DELETE /accounts/{account_id}/rate-library` — reference rates (`?search=` filters
   by description); nothing here links live to a catalog item, it's copy-from-and-adjust.

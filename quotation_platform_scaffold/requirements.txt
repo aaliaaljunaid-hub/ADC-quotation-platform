@@ -9,3 +9,4 @@ stripe
 openpyxl
 alembic
 boto3
+markitdown[pdf,docx,xlsx,pptx]

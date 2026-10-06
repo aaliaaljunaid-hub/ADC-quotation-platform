@@ -440,6 +440,13 @@ class WorkbookImportResponse(BaseModel):
     catalog_items_updated: int
 
 
+
+class DocumentMarkdownResponse(BaseModel):
+    filename: str
+    title: str | None = None
+    markdown: str
+    character_count: int
+
 # --- public (client-facing) quote view ---------------------------------------
 
 class PublicQuoteLineItem(BaseModel):

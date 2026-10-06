@@ -33,6 +33,7 @@ from app.db_models import (
     Account, CatalogItem, Category, CostBuildupDefaults, DocTemplate, FitOutBenchmark,
     Project, Quote, QuoteLineItem, RateLibraryEntry, Room, TermsTemplate, User,
 )
+from app.document_converter import MAX_DOCUMENT_BYTES, convert_document_to_markdown
 from app.docx_generator import generate_quote_document
 from app.pricing_engine import calculate_quote_totals, group_line_items_by_category
 from app.security import hash_access_code, hash_password, verify_access_code, verify_password
@@ -406,6 +407,21 @@ async def import_workbook(
     content = await file.read()
     result = import_adc_workbook(content, account_id, db)
     return models.WorkbookImportResponse(**result)
+
+
+@app.post("/accounts/{account_id}/import/document-markdown", response_model=models.DocumentMarkdownResponse)
+async def convert_document(
+    account_id: str, file: UploadFile,
+    db: Session = Depends(get_db), current: Account = Depends(get_current_account),
+):
+    """Converts an uploaded PDF/DOCX/XLSX/PPTX/etc. to Markdown with markitdown
+    — a read-only reference tool (nothing is saved), so like the estimation
+    aids it's open to any team member and not subscription-gated. See
+    app/document_converter.py."""
+    require_account_match(account_id, current)
+    content = await file.read(MAX_DOCUMENT_BYTES + 1)  # +1 so oversize is detectable without reading it all
+    result = convert_document_to_markdown(content, file.filename, file.content_type)
+    return models.DocumentMarkdownResponse(**result)
 
 
 @app.get("/projects/{project_id}", response_model=models.Project)
