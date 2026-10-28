@@ -58,8 +58,9 @@ Open http://localhost:8000. Without an API key you can still use
 
 Tests: `python -m pytest -q`
 
-A sample model and its generated output are in `samples/`
-(`sample_drawings.pdf`, `sample_drawings.dxf`).
+A sample model and its generated DXF are in `samples/`. PDFs are excluded by
+the repository's `.gitignore`; generate the sample PDF from the web UI
+(*Load sample apartment* → *Generate drawing set*).
 
 ## Workflow
 
