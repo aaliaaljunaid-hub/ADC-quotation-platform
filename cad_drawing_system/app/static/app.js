@@ -149,34 +149,51 @@ const ENUMS = {
   openingKind: ["door", "double_door", "sliding_door", "window", "opening"],
   hinge: ["start", "end"],
   swing: ["left", "right"],
+  status: ["", "new", "reuse", "modify", "relocate", "remove"],
+  roomKind: ["room", "platform", "void"],
+  stage: ["CD", "SD", "DD", "AP", "IFT", "IFC", "AB"],
+  acType: ["wall_mounted", "ceiling_cassette", "concealed_ducted", "floor_standing"],
   furniture: ["sofa", "armchair", "coffee_table", "dining_table", "chair", "bed", "bedside_table", "wardrobe", "desk",
     "office_chair", "tv_unit", "sideboard", "bookshelf", "rug", "kitchen_counter", "kitchen_island", "fridge", "cooker",
     "sink", "wc", "basin", "shower", "bathtub", "reception_desk", "meeting_table", "plant", "other"],
   fixture: ["downlight", "pendant", "linear_light", "spotlight", "wall_light", "ac_supply", "ac_return",
     "smoke_detector", "speaker", "exhaust_fan", "access_panel"],
-  finish: ["floor", "ceiling", "wall", "joinery"],
+  finish: ["floor", "ceiling", "wall", "skirting", "joinery"],
 };
+const STAGE_NAMES = { CD: "Concept Design", SD: "Schematic Design", DD: "Design Development", AP: "Authority / Permit",
+  IFT: "Issued for Tender", IFC: "Issued for Construction", AB: "As-Built" };
+
+const lvl = () => state.level || "GF";
 
 // column: [path, label, type]   type: text | num | enum name | poly | wide
 const TABLES = {
-  walls: { label: "Walls", cols: [["id", "ID"], ["start.x", "Start X", "num"], ["start.y", "Start Y", "num"], ["end.x", "End X", "num"],
-    ["end.y", "End Y", "num"], ["thickness", "Thick.", "num"], ["kind", "Type", "wallKind"], ["height", "Height", "num"]],
-    blank: () => ({ id: nextId("W", "walls"), start: { x: 0, y: 0 }, end: { x: 1000, y: 0 }, thickness: 150, kind: "interior", height: 3000 }) },
+  levels: { label: "Levels", cols: [["id", "ID (GF, FF…)"], ["name", "Name", "wide"], ["ffl", "FFL mm", "num"]],
+    blank: () => ({ id: "FF", name: "First Floor", ffl: 4000 }) },
+  walls: { label: "Walls", cols: [["id", "ID"], ["level", "Level"], ["start.x", "Start X", "num"], ["start.y", "Start Y", "num"], ["end.x", "End X", "num"],
+    ["end.y", "End Y", "num"], ["thickness", "Thick.", "num"], ["kind", "Type", "wallKind"], ["height", "Height", "num"], ["status", "Status", "status"]],
+    blank: () => ({ id: nextId("W", "walls"), level: lvl(), start: { x: 0, y: 0 }, end: { x: 1000, y: 0 }, thickness: 150, kind: "interior", height: 3000, status: "" }) },
   openings: { label: "Doors & windows", cols: [["tag", "Tag"], ["id", "ID"], ["wall_id", "Wall"], ["kind", "Type", "openingKind"], ["offset", "Offset", "num"],
-    ["width", "Width", "num"], ["height", "Height", "num"], ["sill_height", "Sill", "num"], ["hinge", "Hinge", "hinge"], ["swing", "Swing", "swing"]],
-    blank: () => ({ id: nextId("o", "openings"), tag: "D", wall_id: state.model.walls[0]?.id || "", kind: "door", offset: 0, width: 900, height: 2100, sill_height: 0, hinge: "start", swing: "left" }) },
-  rooms: { label: "Rooms", cols: [["id", "ID"], ["name", "Name"], ["polygon", "Boundary (x,y; x,y; …)", "poly"], ["floor_finish", "Floor"],
-    ["ceiling_finish", "Ceiling"], ["ceiling_height", "Ceiling ht.", "num"]],
-    blank: () => ({ id: nextId("r", "rooms"), name: "New room", polygon: [], floor_finish: "", ceiling_finish: "", ceiling_height: 2700 }) },
-  furniture: { label: "Furniture (FF&E)", cols: [["tag", "Tag"], ["name", "Name"], ["category", "Category", "furniture"], ["center.x", "X", "num"],
-    ["center.y", "Y", "num"], ["width", "W", "num"], ["depth", "D", "num"], ["rotation", "Rot°", "num"], ["room_id", "Room"], ["finish", "Finish", "wide"], ["source", "Source"]],
-    blank: () => ({ id: nextId("f", "furniture"), tag: "F", name: "", category: "other", center: { x: 0, y: 0 }, width: 600, depth: 600, rotation: 0, room_id: "", finish: "", source: "manual" }) },
-  ceiling_fixtures: { label: "Ceiling", cols: [["id", "ID"], ["kind", "Type", "fixture"], ["position.x", "X", "num"], ["position.y", "Y", "num"],
-    ["length", "Length", "num"], ["rotation", "Rot°", "num"], ["room_id", "Room"]],
-    blank: () => ({ id: nextId("c", "ceiling_fixtures"), kind: "downlight", position: { x: 0, y: 0 }, length: 0, rotation: 0, room_id: "" }) },
+    ["width", "Width", "num"], ["height", "Height", "num"], ["sill_height", "Sill", "num"], ["hinge", "Hinge", "hinge"], ["swing", "Swing", "swing"], ["status", "Status", "status"]],
+    blank: () => ({ id: nextId("o", "openings"), tag: "D", wall_id: state.model.walls[0]?.id || "", kind: "door", offset: 0, width: 900, height: 2100, sill_height: 0, hinge: "start", swing: "left", status: "" }) },
+  rooms: { label: "Rooms", cols: [["number", "No."], ["name", "Name"], ["level", "Level"], ["kind", "Kind", "roomKind"], ["floor_level", "Floor +mm", "num"],
+    ["polygon", "Boundary (x,y; x,y; …)", "poly"], ["floor_finish", "Floor"], ["skirting", "Skirting"], ["wall_finish", "Walls"], ["ceiling_finish", "Ceiling"],
+    ["ceiling_height", "CH", "num"], ["id", "ID"]],
+    blank: () => ({ id: nextId("r", "rooms"), level: lvl(), number: "", name: "New room", kind: "room", polygon: [], floor_level: 0, floor_finish: "", skirting: "", wall_finish: "", ceiling_finish: "", ceiling_height: 2700 }) },
+  furniture: { label: "Furniture (FF&E)", cols: [["tag", "Tag"], ["name", "Name"], ["status", "Status", "status"], ["category", "Category", "furniture"], ["level", "Level"],
+    ["center.x", "X", "num"], ["center.y", "Y", "num"], ["width", "W", "num"], ["depth", "D", "num"], ["rotation", "Rot°", "num"], ["room_id", "Room"], ["finish", "Finish", "wide"], ["source", "Source"]],
+    blank: () => ({ id: nextId("f", "furniture"), tag: "F", level: lvl(), name: "", category: "other", center: { x: 0, y: 0 }, width: 600, depth: 600, rotation: 0, room_id: "", finish: "", status: "", source: "manual" }) },
+  ceiling_fixtures: { label: "Ceiling", cols: [["id", "ID"], ["kind", "Type", "fixture"], ["level", "Level"], ["position.x", "X", "num"], ["position.y", "Y", "num"],
+    ["length", "Length", "num"], ["rotation", "Rot°", "num"], ["room_id", "Room"], ["status", "Status", "status"]],
+    blank: () => ({ id: nextId("c", "ceiling_fixtures"), level: lvl(), kind: "downlight", position: { x: 0, y: 0 }, length: 0, rotation: 0, room_id: "", status: "" }) },
+  ac_units: { label: "AC units", cols: [["tag", "Tag"], ["type", "Type", "acType"], ["level", "Level"], ["room_id", "Room"], ["position.x", "X", "num"], ["position.y", "Y", "num"],
+    ["rotation", "Rot°", "num"], ["capacity", "Capacity"], ["mounting_height", "Mtg AFFL", "num"], ["outdoor_location", "Outdoor unit", "wide"], ["status", "Status", "status"], ["notes", "Notes", "wide"]],
+    blank: () => ({ id: nextId("a", "ac_units"), tag: `AC-${String(state.model.ac_units.length + 1).padStart(2, "0")}`, level: lvl(), room_id: "", type: "wall_mounted", position: { x: 0, y: 0 }, rotation: 0, capacity: "", mounting_height: 2300, outdoor_location: "", status: "new", notes: "" }) },
   finishes: { label: "Finishes", cols: [["code", "Code"], ["category", "Type", "finish"], ["description", "Description", "wide"], ["material", "Material", "wide"], ["notes", "Notes", "wide"]],
     blank: () => ({ code: "XX-01", category: "floor", description: "", material: "", notes: "" }) },
+  revisions: { label: "Revisions", cols: [["rev", "Rev"], ["date", "Date"], ["description", "Description", "wide"], ["by", "By"]],
+    blank: () => ({ rev: state.model.project.revision, date: new Date().toISOString().slice(0, 10), description: "", by: "" }) },
 };
+const rowsOf = key => key === "revisions" ? state.model.project.revisions : state.model[key];
 
 function nextId(prefix, coll) {
   const used = new Set(state.model[coll].map(x => x.id));
@@ -201,7 +218,7 @@ function cellInput(row, [path, , type]) {
   const value = getPath(row, path);
   if (type && ENUMS[type]) {
     return h("select", { onchange: e => { setPath(row, path, e.target.value); drawPreview(); } },
-      ENUMS[type].map(o => h("option", { value: o, selected: o === value }, o.replaceAll("_", " "))));
+      ENUMS[type].map(o => h("option", { value: o, selected: o === value }, o ? o.replaceAll("_", " ") : "TBC")));
   }
   if (type === "poly") {
     return h("input", { class: "wide", value: polyToText(value || []), onchange: e => { setPath(row, path, textToPoly(e.target.value)); drawPreview(); } });
@@ -214,7 +231,7 @@ function cellInput(row, [path, , type]) {
 }
 
 function renderTabs() {
-  const tabs = [["project", "Project info"], ...Object.entries(TABLES).map(([k, t]) => [k, `${t.label} (${state.model[k].length})`])];
+  const tabs = [["project", "Project info"], ...Object.entries(TABLES).map(([k, t]) => [k, `${t.label} (${rowsOf(k).length})`])];
   $("#tabs").replaceChildren(...tabs.map(([k, label]) =>
     h("button", { class: state.tab === k ? "active" : "", onclick: () => { state.tab = k; renderTabs(); renderTab(); } }, label)));
 }
@@ -223,14 +240,20 @@ function renderTab() {
   const body = $("#tab-body");
   if (state.tab === "project") {
     const p = state.model.project;
-    const fields = [["project_name", "Project name"], ["project_number", "Project no."], ["client", "Client"], ["location", "Location"],
-      ["company_name", "Company"], ["drawn_by", "Drawn by"], ["checked_by", "Checked by"], ["date", "Date"], ["revision", "Revision"], ["status", "Status"]];
-    body.replaceChildren(h("div", { class: "form-grid" }, fields.map(([k, label]) =>
-      h("label", {}, label, h("input", { value: p[k] ?? "", onchange: e => { p[k] = e.target.value; } })))));
+    const fields = [["project_name", "Project name"], ["project_code", "Project code (in sheet numbers)"], ["client", "Client"],
+      ["location", "Site address"], ["company_name", "Company"], ["drawn_by", "Drawn by"], ["checked_by", "Checked by"],
+      ["approved_by", "Approved by"], ["date", "Issue date"], ["revision", "Current revision"]];
+    body.replaceChildren(h("div", { class: "form-grid" },
+      h("label", {}, "Issue stage", h("select", { onchange: e => { p.stage = e.target.value; } },
+        ENUMS.stage.map(st => h("option", { value: st, selected: st === p.stage }, `${st} - ${STAGE_NAMES[st]}`)))),
+      fields.map(([k, label]) =>
+        h("label", {}, label, h("input", { value: p[k] ?? "", onchange: e => { p[k] = e.target.value; } })))),
+      h("p", { class: "hint" }, "Sheet number: ", h("code", {}, `ADC-${p.project_code || "XXXX"}-ID-201-${p.revision}`),
+        ". Revisions are letters (A, B, C) before IFC and numbers (0, 1, 2) from IFC. Log each issue in the Revisions tab."));
     return;
   }
   const spec = TABLES[state.tab];
-  const rows = state.model[state.tab];
+  const rows = rowsOf(state.tab);
   const table = h("table", { class: "grid" },
     h("thead", {}, h("tr", {}, spec.cols.map(c => h("th", {}, c[1])), h("th"))),
     h("tbody", {}, rows.map((row, i) => h("tr", { "data-id": row.id || row.code },
@@ -247,12 +270,28 @@ function renderTab() {
 
 function renderIssues() {
   const issues = state.issues || [];
-  const errors = issues.filter(i => i.level === "error").length;
-  $("#issue-count").textContent = issues.length ? `${errors} errors · ${issues.length - errors} warnings` : "none";
-  $("#issues").replaceChildren(...(issues.length ? issues.map(i =>
+  const count = lv => issues.filter(i => i.level === lv).length;
+  $("#issue-count").textContent = issues.length ? `${count("error")} errors · ${count("warning")} warnings · ${count("pricing")} pricing` : "none";
+  const order = { error: 0, warning: 1, pricing: 2 };
+  $("#issues").replaceChildren(...(issues.length ? [...issues].sort((a, b) => order[a.level] - order[b.level]).map(i =>
     h("li", { class: i.level }, h("b", {}, i.item), i.message)) : [h("li", {}, "No issues found.")]));
   const notes = state.model.extraction_notes || [];
   $("#notes").replaceChildren(...(notes.length ? notes.map(n => h("li", {}, n)) : [h("li", {}, "None.")]));
+}
+
+function levelIds() {
+  const ids = state.model.levels.map(l => l.id);
+  for (const coll of ["walls", "rooms", "furniture", "ceiling_fixtures", "ac_units"])
+    for (const x of state.model[coll]) if (!ids.includes(x.level)) ids.push(x.level);
+  return ids.length ? ids : ["GF"];
+}
+
+function renderLevelPicker() {
+  const ids = levelIds();
+  if (!ids.includes(state.level)) state.level = ids[0];
+  $("#level-pick").replaceChildren(...ids.map(id => h("option", { value: id, selected: id === state.level },
+    state.model.levels.find(l => l.id === id)?.name || id)));
+  $("#level-pick").parentElement.hidden = ids.length < 2;
 }
 
 function renderReview() {
@@ -260,6 +299,7 @@ function renderReview() {
   $("#review-card").hidden = !has;
   $("#generate-card").hidden = !has;
   if (!has) return;
+  renderLevelPicker();
   if (!(state.tab in TABLES) && state.tab !== "project") state.tab = "walls";
   renderTabs();
   renderTab();
@@ -295,6 +335,7 @@ $("#toggle-json").addEventListener("click", () => {
   $("#toggle-json").textContent = ta.hidden ? "Edit raw JSON" : "Back to tables";
 });
 for (const cb of $$("[data-show]")) cb.addEventListener("change", () => { state.show[cb.dataset.show] = cb.checked; drawPreview(); });
+$("#level-pick").addEventListener("change", e => { state.level = e.target.value; drawPreview(); });
 
 // ---------------------------------------------------------------- plan preview (SVG, y flipped)
 
@@ -313,7 +354,12 @@ function wallPoint(w, d, side = 0) {
 
 function drawPreview() {
   const svg = $("#preview");
-  const m = state.model;
+  const all = state.model;
+  const lv = lvl();
+  const wallIds = new Set(all.walls.filter(w => w.level === lv).map(w => w.id));
+  const m = { walls: all.walls.filter(w => wallIds.has(w.id)), openings: all.openings.filter(o => wallIds.has(o.wall_id)),
+    rooms: all.rooms.filter(r => r.level === lv), furniture: all.furniture.filter(f => f.level === lv),
+    ceiling_fixtures: all.ceiling_fixtures.filter(c => c.level === lv), ac_units: all.ac_units.filter(a => a.level === lv) };
   svg.replaceChildren();
   const pts = [...m.walls.flatMap(w => [w.start, w.end]), ...m.rooms.flatMap(r => r.polygon)];
   if (!pts.length) return;
@@ -333,7 +379,9 @@ function drawPreview() {
 
   for (const r of m.rooms) {
     if (r.polygon.length < 3) continue;
-    g.append(s("polygon", { points: r.polygon.map(p => `${p.x},${p.y}`).join(" "), fill: "#eef3f9", stroke: "none" }));
+    const fill = r.kind === "void" ? "#fff" : r.kind === "platform" ? "#e3ecd9" : "#eef3f9";
+    g.append(s("polygon", { points: r.polygon.map(p => `${p.x},${p.y}`).join(" "), fill, stroke: r.kind === "room" ? "none" : "#5b6b47",
+      "stroke-width": 1.5 * unit, "stroke-dasharray": r.kind === "void" ? `${8 * unit}` : "none" }));
   }
   const walls = Object.fromEntries(m.walls.map(w => [w.id, w]));
   for (const w of m.walls) {
@@ -385,10 +433,20 @@ function drawPreview() {
       g.append(el);
     }
   }
+  for (const a of m.ac_units) {
+    const [w, d] = { wall_mounted: [900, 300], ceiling_cassette: [840, 840], concealed_ducted: [1100, 700], floor_standing: [500, 300] }[a.type];
+    const r = s("rect", { x: -w / 2, y: -d / 2, width: w, height: d, fill: "rgba(2,122,72,.15)", stroke: "#027a48", "stroke-width": 2 * unit,
+      transform: `translate(${a.position.x},${a.position.y}) rotate(${a.rotation})` });
+    const t = s("title");
+    t.textContent = `${a.tag} ${a.type.replaceAll("_", " ")} ${a.capacity}`;
+    r.append(t);
+    g.append(r);
+    label(a.tag, a.position.x, a.position.y - d / 2 - 250, 9, 600);
+  }
   for (const r of m.rooms) {
     if (r.polygon.length < 3) continue;
     const cx = r.polygon.reduce((a, p) => a + p.x, 0) / r.polygon.length, cy = r.polygon.reduce((a, p) => a + p.y, 0) / r.polygon.length;
-    label(r.name, cx, cy, 12, 600);
+    label(r.kind === "void" ? "VOID" : `${r.number ? r.number + " " : ""}${r.name}`, cx, cy, 12, 600);
   }
 }
 
@@ -414,7 +472,8 @@ function renderOutputs() {
   const pid = state.project.id;
   const file = n => `/api/projects/${pid}/files/${encodeURIComponent(n)}`;
   $("#downloads").replaceChildren(...state.project.outputs.map(n =>
-    h("a", { class: "btn ghost", href: file(n), download: n }, `Download ${n.endsWith(".pdf") ? "PDF set" : "DXF (AutoCAD)"} · ${n}`)));
+    h("a", { class: "btn ghost", href: file(n), download: n },
+      n.endsWith(".pdf") ? "Download PDF set" : n.endsWith(".zip") ? "Download CAD package (DXF + logo)" : "Download DXF only")));
   const bust = Date.now();
   $("#sheets").replaceChildren(...state.project.sheets.map(sh =>
     h("div", { class: "sheet" }, h("img", { src: `${file(sh.preview)}?v=${bust}`, alt: sh.name, onclick: () => lightbox(`${file(sh.preview)}?v=${bust}`) }), h("div", {}, sh.name))));

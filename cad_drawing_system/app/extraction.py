@@ -55,9 +55,28 @@ side of the wall the door opens into, looking from wall start to wall end.
 - Tag doors D01, D02... and windows W01, W02... in reading order; plain openings O01...
 - Window sill heights: use 900 for standard windows, 0 for full-height glazing, unless shown.
 
+Levels
+- One entry in levels per floor shown (GF, FF, SF, RF, B1; or Z1, Z2 for zones of one \
+large floor), with ffl in mm when a level is written (e.g. "FFL +4.20" -> 4200). Every \
+wall, room, furniture item, fixture and AC unit carries its level id. Each level has its \
+own origin at that floor's bottom-left outer corner, aligned so stacked walls share coordinates.
+
 Rooms
 - Polygon vertices on wall centrelines, counter-clockwise, not repeating the first point.
-- Use the room names written on the plan; otherwise name rooms by their evident use.
+- Use the room names and numbers written on the plan; otherwise name rooms by their \
+evident use and number them 01, 02... per level in reading order.
+- A raised or lowered floor area inside a room (e.g. "EL +0.40" pedicure platform) is a \
+separate entry with kind "platform" and floor_level in mm (400). A double-height opening \
+in a floor is kind "void". Normal rooms are kind "room".
+
+Status (prices depend on it)
+- status is "new", "reuse", "modify", "relocate" or "remove" only when the drawing or \
+brief says so (e.g. "TO BE DISMANTLED" -> remove, "TO BE MODIFIED" -> modify, "existing \
+to remain" -> reuse). Otherwise leave it empty so the designer must decide.
+
+AC units
+- Add ac_units only where split units/indoor units are shown or the brief asks for them: \
+tag AC-01..., room, type, position. Leave capacity and outdoor_location empty unless written.
 
 Interior content
 - Furniture and fixtures drawn on the plan: add with source "floor plan".
@@ -70,12 +89,13 @@ against a wall to the north (+Y), 90 = back against the east wall, 180 = south, 
 - Propose a ceiling layout for every room: downlights at roughly 1200-1800 mm spacing \
 kept 500 mm+ from walls, pendants over dining/island, an exhaust fan in wet rooms, \
 a smoke detector in bedrooms and corridors, AC supply diffusers where sensible.
-- Finishes: give codes FL-xx (floor), CL-xx (ceiling), WL-xx (wall), JN-xx (joinery). \
+- Finishes: give codes FL-xx (floor), CL-xx (ceiling), WL-xx (wall), SK-xx (skirting), JN-xx (joinery). \
 Take materials from the renders when shown (e.g. "Porcelain tile 600x600 matt"); \
 otherwise propose sensible defaults and say so in extraction_notes. Every room needs \
-floor_finish and ceiling_finish codes that exist in finishes.
+floor_finish, wall_finish and ceiling_finish codes that exist in finishes.
 
-Project info: fill what is visible on the drawing (title block, project name); leave the rest empty.
+Project info: fill what is visible on the drawing's title block (project name, code, client, \
+address, stage, revision); leave the rest empty. Use stage "CD" and revision "A" if none is shown.
 """
 
 

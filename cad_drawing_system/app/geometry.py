@@ -84,8 +84,41 @@ def _project_onto(p: Point, w: Wall) -> tuple[float, Point]:
     return math.hypot(p.x - q.x, p.y - q.y), q
 
 
+def level_model(model: BuildingModel, level_id: str) -> BuildingModel:
+    """The elements of one level (openings follow their wall)."""
+    walls = [w for w in model.walls if w.level == level_id]
+    wall_ids = {w.id for w in walls}
+    return model.model_copy(update={
+        "walls": walls,
+        "openings": [o for o in model.openings if o.wall_id in wall_ids],
+        "rooms": [r for r in model.rooms if r.level == level_id],
+        "furniture": [f for f in model.furniture if f.level == level_id],
+        "ceiling_fixtures": [c for c in model.ceiling_fixtures if c.level == level_id],
+        "ac_units": [a for a in model.ac_units if a.level == level_id],
+    }, deep=True)
+
+
+def translate(model: BuildingModel, dx: float, dy: float = 0.0) -> BuildingModel:
+    m = model.model_copy(deep=True)
+    pts = [p for w in m.walls for p in (w.start, w.end)]
+    pts += [p for r in m.rooms for p in r.polygon]
+    pts += [f.center for f in m.furniture] + [c.position for c in m.ceiling_fixtures] + [a.position for a in m.ac_units]
+    for p in pts:
+        p.x += dx
+        p.y += dy
+    return m
+
+
 def normalize(model: BuildingModel) -> BuildingModel:
-    """Snap the AI's geometry so walls meet cleanly. Returns a new model."""
+    """Snap the AI's geometry so walls meet cleanly, level by level. Returns a new model."""
+    parts = [_normalize_level(level_model(model, lv)) for lv in model.level_ids()]
+    return model.model_copy(update={
+        key: [item for part in parts for item in getattr(part, key)]
+        for key in ("walls", "openings", "rooms", "furniture", "ceiling_fixtures", "ac_units")
+    }, deep=True)
+
+
+def _normalize_level(model: BuildingModel) -> BuildingModel:
     m = model.model_copy(deep=True)
     for w in m.walls:
         _straighten(w)
@@ -191,6 +224,7 @@ def polygons(geom) -> list[Polygon]:
 
 
 def room_net_polygon(room_pts: list[Point], walls_solid) -> Polygon:
+    """Room area inside the wall faces (largest piece if walls split it)."""
     if len(room_pts) < 3:
         return Polygon()
     poly = Polygon([(p.x, p.y) for p in room_pts]).buffer(0)

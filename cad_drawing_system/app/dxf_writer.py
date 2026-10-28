@@ -1,8 +1,10 @@
 """Generate a DXF drawing set from a BuildingModel.
 
-Everything is drawn once in model space on AIA-style layers. Each sheet is a
-paper-space layout (A3 landscape) with a scaled viewport that freezes the
-layers that sheet should not show, plus title block, legend and scale bar.
+Everything is drawn once in model space on AIA-style layers, each level
+side by side. Each sheet is a paper-space layout (A3 landscape) with a scaled
+viewport that freezes the layers that sheet should not show, plus title
+block, legend and scale bar. Sheet numbers, titles and the sheets issued at
+each stage follow the ADC Interior Design Drawing Register.
 """
 
 from __future__ import annotations
@@ -10,6 +12,7 @@ from __future__ import annotations
 import math
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable
 
 import ezdxf
@@ -17,19 +20,27 @@ from ezdxf.enums import TextEntityAlignment
 from ezdxf.layouts import Layout, Paperspace
 from shapely.affinity import rotate as s_rotate
 from shapely.geometry import LineString, Polygon
-from shapely.ops import polylabel
+from shapely.geometry import Point as SPoint
+from shapely.ops import polylabel, unary_union
 
 from . import geometry as g
-from .schema import BuildingModel, Finish, Furniture, Opening, Wall
+from .schema import STAGE_NAMES, BuildingModel, Finish, Furniture, Opening, Wall
 
 # ---------------------------------------------------------------- sheet constants (mm on paper)
 
 PAPER_W, PAPER_H = 420.0, 297.0  # A3 landscape
+PAPER_NAME = "A3"
 FRAME = (20.0, 10.0, 410.0, 287.0)  # x0, y0, x1, y1 (wider left margin for binding)
 STRIP_X = 335.0  # title strip starts here
 PLAN_AREA = (25.0, 34.0, 330.0, 282.0)  # where the viewport goes
 SCALES = [20, 25, 50, 75, 100, 125, 150, 200, 250, 300, 400, 500]
 DIM_MARGIN = 30.0  # paper mm needed outside the plan for dimension chains
+LEVEL_GAP = 20000.0  # mm between levels laid side by side in model space
+
+LOGO_FILE = Path(__file__).parent / "assets" / "aalia_logo.png"
+LOGO_BOX = (STRIP_X + 4, 244.0, FRAME[2] - 4, 284.0)  # x0, y0, x1, y1 on paper
+LOGO_PX = (1400, 861)
+LEGEND_TOP = 214.0
 
 ALIGN = TextEntityAlignment
 
@@ -41,6 +52,8 @@ LAYERS = {
     "A-DOOR-HEAD": (7, 18, "Continuous"),
     "A-GLAZ": (7, 18, "Continuous"),
     "A-DOOR-IDEN": (7, 18, "Continuous"),
+    "A-FLOR-LEVL": (7, 25, "Continuous"),
+    "A-FLOR-OPEN": (7, 25, "Continuous"),
     "A-ANNO-DIMS": (7, 13, "Continuous"),
     "A-ANNO-DIMS-INTR": (7, 13, "Continuous"),
     "G-ROOM-NAME": (7, 25, "Continuous"),
@@ -51,20 +64,29 @@ LAYERS = {
     "I-CLNG-IDEN": (7, 18, "Continuous"),
     "I-FLOR-PATT": (9, 9, "Continuous"),
     "I-FLOR-IDEN": (7, 18, "Continuous"),
+    "M-HVAC-EQPM": (7, 35, "Continuous"),
+    "M-HVAC-IDEN": (7, 18, "Continuous"),
+    "M-HVAC-DIMS": (7, 13, "Continuous"),
     "G-ANNO-TTLB": (7, 25, "Continuous"),
     "G-ANNO-TEXT": (7, 18, "Continuous"),
     "G-ANNO-NPLT": (8, 0, "Continuous"),
 }
 
 WALL_FILL = {"exterior": 8, "interior": 8, "partition": 9}
+STATUS_SUFFIX = {"reuse": "R", "modify": "M", "relocate": "RL", "remove": "X"}
+STATUS_LABEL = {"": "TBC", "new": "New", "reuse": "Reuse", "modify": "Modify", "relocate": "Relocate", "remove": "Remove"}
 
 
 @dataclass
 class SheetSpec:
-    number: str
+    number: str  # register number without level suffix, e.g. "ID-201"
     title: str
-    show: set[str]
+    show: set[str] = field(default_factory=set)
     legend: Callable[["Ctx", Paperspace, float], None] | None = None
+    stages: frozenset[str] = frozenset(STAGE_NAMES)
+    needs: str = ""  # model collection that must be non-empty
+    north: bool = True
+    note: str = ""
 
 
 @dataclass
@@ -75,10 +97,26 @@ class Ctx:
     scale: int
     geo: g.WallGeometry
     room_net: dict[str, Polygon] = field(default_factory=dict)
+    level_id: str = "GF"
+    suffix: str = ""  # ".GF" on multi-level projects
+    logo_def: object = None  # shared IMAGEDEF of the company logo
 
     def h(self, paper_mm: float) -> float:
         """Model-space size that prints at `paper_mm` on the sheet."""
         return paper_mm * self.scale
+
+
+# ---------------------------------------------------------------- numbering
+
+def sheet_number(model: BuildingModel, short: str) -> str:
+    """ADC-[Project code]-ID-[Series][Sheet]-[Revision], e.g. ADC-VLA24-ID-203-B."""
+    p = model.project
+    return f"ADC-{p.project_code or 'XXXX'}-{short}-{p.revision}"
+
+
+def level_text(ffl: float) -> str:
+    """Levels are written in metres: FFL ±0.00, FFL +0.40."""
+    return "FFL ±0.00" if abs(ffl) < 0.5 else f"FFL {ffl / 1000:+.2f}"
 
 
 # ---------------------------------------------------------------- document setup
@@ -249,6 +287,31 @@ def _label_point(poly: Polygon) -> tuple[float, float]:
     return p.x, p.y
 
 
+def _poly_outline(space, poly: Polygon, layer: str, **attrs) -> None:
+    _poly(space, list(poly.exterior.coords)[:-1], layer, **attrs)
+
+
+def draw_levels_and_voids(ctx: Ctx) -> None:
+    """Raised/lowered platforms get a step edge and level tag; voids a cross and balustrade line."""
+    for r in ctx.model.rooms:
+        net = ctx.room_net.get(r.id)
+        if net is None or net.is_empty or r.kind == "room":
+            continue
+        if r.kind == "platform":
+            _poly_outline(ctx.msp, net, "A-FLOR-LEVL")
+        else:  # void: balustrade line just inside the edge and a cross
+            inner = net.buffer(-50, join_style="mitre")
+            _poly_outline(ctx.msp, net, "A-FLOR-OPEN")
+            if not inner.is_empty and isinstance(inner, Polygon):
+                _poly_outline(ctx.msp, inner, "A-FLOR-OPEN")
+            bx0, by0, bx1, by1 = net.bounds
+            for a, b in (((bx0, by0), (bx1, by1)), ((bx0, by1), (bx1, by0))):
+                seg = LineString([a, b]).intersection(net)
+                for part in getattr(seg, "geoms", [seg]):
+                    if isinstance(part, LineString) and part.length > 1:
+                        ctx.msp.add_line(part.coords[0], part.coords[-1], dxfattribs={"layer": "A-FLOR-OPEN"})
+
+
 def draw_room_tags(ctx: Ctx) -> None:
     finishes = {f.code: f for f in ctx.model.finishes}
     for r in ctx.model.rooms:
@@ -256,6 +319,19 @@ def draw_room_tags(ctx: Ctx) -> None:
         if net is None or net.is_empty:
             continue
         x, y = _label_point(net)
+        if r.kind == "void":
+            _text(ctx.msp, "VOID", (x, y + ctx.h(4)), ctx.h(2.8), "A-FLOR-OPEN")
+            continue
+        if r.kind == "platform":
+            label = f"{r.name.upper()}  {level_text(ctx.model.level(ctx.level_id).ffl + r.floor_level)}"
+            _text(ctx.msp, label, (x, y + ctx.h(4)), ctx.h(2.0), "A-FLOR-LEVL")
+            if r.floor_finish:
+                _text(ctx.msp, r.floor_finish, (x, y + ctx.h(1)), ctx.h(1.8), "I-FLOR-IDEN")
+            continue
+        if r.number:  # room number in a box above the name
+            bw, bh = ctx.h(2.2 + 1.3 * len(r.number)), ctx.h(4)
+            _rect(ctx.msp, x - bw / 2, y + ctx.h(4), x + bw / 2, y + ctx.h(4) + bh, "G-ROOM-NAME")
+            _text(ctx.msp, r.number, (x, y + ctx.h(6)), ctx.h(2.2), "G-ROOM-NAME")
         _text(ctx.msp, r.name.upper(), (x, y + ctx.h(1.6)), ctx.h(2.8), "G-ROOM-NAME")
         _text(ctx.msp, f"{net.area / 1e6:.1f} m²", (x, y - ctx.h(2.2)), ctx.h(2.0), "A-AREA-IDEN")
         ceiling = r.ceiling_finish or "-"
@@ -317,7 +393,7 @@ def draw_dimensions(ctx: Ctx) -> None:
     # clear internal dimensions for (near-)rectangular rooms
     for r in ctx.model.rooms:
         net = ctx.room_net.get(r.id)
-        if net is None or net.is_empty:
+        if net is None or net.is_empty or r.kind != "room":
             continue
         bx0, by0, bx1, by1 = net.bounds
         if net.area < 0.97 * (bx1 - bx0) * (by1 - by0) or min(bx1 - bx0, by1 - by0) < ctx.h(32):
@@ -423,7 +499,8 @@ def draw_furniture(ctx: Ctx) -> None:
     for f in ctx.model.furniture:
         draw_furniture_item(ctx.msp, f)
         if f.category != "rug":
-            _text(ctx.msp, f.tag, (f.center.x, f.center.y), ctx.h(1.6), "I-FURN-IDEN")
+            tag = f"{f.tag}-{STATUS_SUFFIX[f.status]}" if f.status in STATUS_SUFFIX else f.tag
+            _text(ctx.msp, tag, (f.center.x, f.center.y), ctx.h(1.6), "I-FURN-IDEN")
 
 
 # ---------------------------------------------------------------- ceiling
@@ -542,75 +619,219 @@ def hatch_floor(space, poly: Polygon, spec: PatternSpec, origin, layer="I-FLOR-P
 
 def draw_flooring(ctx: Ctx) -> None:
     finishes = {f.code: f for f in ctx.model.finishes}
+    # platforms carry their own finish; voids have no floor
+    cutouts = unary_union([ctx.room_net[r.id] for r in ctx.model.rooms
+                           if r.kind != "room" and r.id in ctx.room_net])
     for r in ctx.model.rooms:
         net = ctx.room_net.get(r.id)
+        if net is None or net.is_empty or r.kind == "void":
+            continue
+        area = net.difference(cutouts) if r.kind == "room" and not cutouts.is_empty else net
+        bx0, by0, _, _ = net.bounds
+        for part in g.polygons(area):
+            hatch_floor(ctx.msp, part, floor_pattern(finishes.get(r.floor_finish)), (bx0, by0))
+
+
+# ---------------------------------------------------------------- AC units (HVAC coordination)
+
+AC_LABELS = {
+    "wall_mounted": "Wall-mounted split unit",
+    "ceiling_cassette": "Ceiling cassette unit",
+    "concealed_ducted": "Concealed ducted unit",
+    "floor_standing": "Floor-standing unit",
+}
+AC_SIZES = {  # typical outline, mm (width, depth)
+    "wall_mounted": (900, 300),
+    "ceiling_cassette": (840, 840),
+    "concealed_ducted": (1100, 700),
+    "floor_standing": (500, 300),
+}
+
+
+def draw_ac_symbol(space, kind: str, x: float, y: float, rot: float = 0.0, k: float = 1.0,
+                   layer: str = "M-HVAC-EQPM") -> None:
+    w, d = AC_SIZES[kind]
+    c, s = math.cos(math.radians(rot)), math.sin(math.radians(rot))
+    T = lambda u, v: (x + (u * c - v * s) * k, y + (u * s + v * c) * k)  # noqa: E731
+    box = lambda hw, hd, **a: _poly(space, [T(-hw, -hd), T(hw, -hd), T(hw, hd), T(-hw, hd)], layer, **a)  # noqa: E731
+    line = lambda a, b: space.add_line(T(*a), T(*b), dxfattribs={"layer": layer})  # noqa: E731
+    if kind == "wall_mounted":
+        box(w / 2, d / 2)
+        line((-w / 2 + 60, -d / 2 + 60), (w / 2 - 60, -d / 2 + 60))  # air outlet louvre (front, local -Y)
+    elif kind == "ceiling_cassette":
+        box(w / 2, d / 2)
+        box(300, 300)
+        for a, b in (((-260, 330), (260, 330)), ((-260, -330), (260, -330)),
+                     ((330, -260), (330, 260)), ((-330, -260), (-330, 260))):
+            line(a, b)
+    elif kind == "concealed_ducted":
+        box(w / 2, d / 2, linetype="DASHED", ltscale=max(k * 8, 0.2))
+        line((-w / 2, -d / 2), (w / 2, d / 2))
+    else:
+        box(w / 2, d / 2)
+        line((-w / 2, -d / 2), (w / 2, d / 2))
+        line((-w / 2, d / 2), (w / 2, -d / 2))
+
+
+def draw_ac_units(ctx: Ctx) -> None:
+    for a in ctx.model.ac_units:
+        draw_ac_symbol(ctx.msp, a.type, a.position.x, a.position.y, a.rotation)
+        # tag below the unit
+        tx, ty = a.position.x, a.position.y - ctx.h(7)
+        tw, th = ctx.h(11), ctx.h(4)
+        _rect(ctx.msp, tx - tw / 2, ty - th / 2, tx + tw / 2, ty + th / 2, "M-HVAC-IDEN")
+        _text(ctx.msp, a.tag, (tx, ty), ctx.h(2.0), "M-HVAC-IDEN")
+        # set-out dimensions from the nearest wall faces of its room
+        net = ctx.room_net.get(a.room_id)
         if net is None or net.is_empty:
             continue
-        bx0, by0, _, _ = net.bounds
-        hatch_floor(ctx.msp, net, floor_pattern(finishes.get(r.floor_finish)), (bx0, by0))
+        bx0, by0, bx1, by1 = net.bounds
+        cx, cy = a.position.x, a.position.y
+        fx = bx0 if cx - bx0 <= bx1 - cx else bx1
+        fy = by0 if cy - by0 <= by1 - cy else by1
+        if abs(cx - fx) > 50:
+            ctx.msp.add_linear_dim(base=(fx, cy + ctx.h(5)), p1=(fx, cy), p2=(cx, cy), angle=0,
+                                   dimstyle="ADC-ARCH", dxfattribs={"layer": "M-HVAC-DIMS"}).render()
+        if abs(cy - fy) > 50:
+            ctx.msp.add_linear_dim(base=(cx + ctx.h(5), fy), p1=(cx, fy), p2=(cx, cy), angle=90,
+                                   dimstyle="ADC-ARCH", dxfattribs={"layer": "M-HVAC-DIMS"}).render()
 
 
 # ---------------------------------------------------------------- paper space: frame, title block, legends
 
-def _title_block(ctx: Ctx, ps: Paperspace, spec: SheetSpec) -> None:
+def _title_block(ctx: Ctx, ps: Paperspace, spec: SheetSpec, short: str, title: str) -> None:
+    """Fields required on every sheet by the ADC drawing register."""
     p = ctx.model.project
     L = "G-ANNO-TTLB"
     x0, y0, x1, y1 = FRAME
+    sx, w = STRIP_X, x1 - STRIP_X
     _rect(ps, 5, 5, PAPER_W - 5, PAPER_H - 5, L, lineweight=13)
     _rect(ps, x0, y0, x1, y1, L, lineweight=50)
-    ps.add_line((STRIP_X, y0), (STRIP_X, y1), dxfattribs={"layer": L, "lineweight": 35})
-    sx = STRIP_X + 3
+    ps.add_line((sx, y0), (sx, y1), dxfattribs={"layer": L, "lineweight": 35})
 
-    def cell(ya, yb, label, value, h=2.5, xa=STRIP_X, xb=x1):
-        ps.add_line((xa, yb), (xb, yb), dxfattribs={"layer": L})
-        _text(ps, label.upper(), (xa + 2, yb - 2.5), 1.5, L, ALIGN.LEFT)
+    def hline(y):
+        ps.add_line((sx, y), (x1, y), dxfattribs={"layer": L})
+
+    def vline(x, ya, yb):
+        ps.add_line((x, ya), (x, yb), dxfattribs={"layer": L})
+
+    def field_(xa, ya, xb, yb, label, value, h=2.2):
+        _text(ps, label.upper(), (xa + 1.5, yb - 2.2), 1.4, L, ALIGN.LEFT)
         if value:
-            _text(ps, value, (xa + 2, ya + 2.5), h, L, ALIGN.LEFT)
+            _text(ps, _fit(str(value), xb - xa - 3, h), (xa + 1.5, ya + 2.0), h, L, ALIGN.LEFT)
 
-    xm = (STRIP_X + x1) / 2
-    cell(y0, y0 + 16, "Drawing no.", spec.number, 5.0, xb=xm)
-    cell(y0, y0 + 16, "Revision", p.revision, 5.0, xa=xm)
-    ps.add_line((xm, y0), (xm, y0 + 32), dxfattribs={"layer": L})
-    cell(y0 + 16, y0 + 32, "Scale @ A3", f"1:{ctx.scale}", 3.0, xb=xm)
-    cell(y0 + 16, y0 + 32, "Date", p.date, 3.0, xa=xm)
-    ps.add_line((xm, y0 + 32), (xm, y0 + 44), dxfattribs={"layer": L})
-    cell(y0 + 32, y0 + 44, "Drawn", p.drawn_by, 2.5, xb=xm)
-    cell(y0 + 32, y0 + 44, "Checked", p.checked_by, 2.5, xa=xm)
-    cell(y0 + 44, y0 + 62, "Drawing title", "", 2.5)
-    ps.add_mtext(spec.title.upper(), dxfattribs={"layer": L, "style": "ADC", "char_height": 3.2,
-                                                  "width": x1 - STRIP_X - 4}).set_location((sx, y0 + 57.5))
-    cell(y0 + 62, y0 + 92, "Project", "", 2.5)
-    proj = "\\P".join(v for v in (p.project_name, p.client and f"Client: {p.client}", p.location,
-                                    p.project_number and f"Job no. {p.project_number}") if v)
-    ps.add_mtext(proj, dxfattribs={"layer": L, "style": "ADC", "char_height": 2.5,
-                                   "width": x1 - STRIP_X - 4}).set_location((sx, y0 + 87.5))
-    cell(y0 + 92, y0 + 104, "Status", p.status, 1.9)
-    cell(y0 + 104, y0 + 118, "", p.company_name, 3.5)
+    # logo
+    if ctx.logo_def is not None:
+        lx0, ly0, lx1, ly1 = logo_rect()
+        ps.add_image(ctx.logo_def, insert=(lx0, ly0), size_in_units=(lx1 - lx0, ly1 - ly0), dxfattribs={"layer": L})
+    hline(240)
 
-    notes = ("NOTES\\P1. All dimensions in millimetres unless noted.\\P2. Do not scale from this drawing.\\P"
-             "3. Verify all dimensions on site before fabrication or construction.\\P"
-             "4. Geometry was extracted from images with AI assistance and must be checked "
-             "and approved by a qualified professional before use.")
-    ps.add_mtext(notes, dxfattribs={"layer": L, "style": "ADC", "char_height": 1.6,
-                                    "width": x1 - STRIP_X - 6}).set_location((sx, y0 + 145))
+    # north point (plans only) and the do-not-scale note
+    if spec.north:
+        nx, ny = sx + 10, 229
+        ps.add_circle((nx, ny), 5.5, dxfattribs={"layer": L})
+        _poly(ps, [(nx, ny + 5.5), (nx - 2.8, ny - 3.5), (nx, ny - 1.8), (nx + 2.8, ny - 3.5)], L)
+        _text(ps, "N", (nx, ny + 7.2), 2.0, L)
+    _text(ps, "DO NOT SCALE THIS DRAWING", (sx + (21 if spec.north else 3), 231), 1.9, L, ALIGN.LEFT)
+    _text(ps, "Use written dimensions only.", (sx + (21 if spec.north else 3), 227), 1.5, L, ALIGN.LEFT)
+    hline(219)
 
-    # north arrow (plan north assumed up)
-    nx, ny = x1 - 12, y1 - 14
-    ps.add_circle((nx, ny), 6, dxfattribs={"layer": L})
-    _poly(ps, [(nx, ny + 6), (nx - 3, ny - 4), (nx, ny - 2), (nx + 3, ny - 4)], L)
-    _text(ps, "N", (nx, ny + 9), 2.5, L)
+    # (legend area 219 -> 150 is filled by the sheet's legend function)
+
+    # notes
+    hline(150)
+    notes = ["NOTES",
+             "1. Dimensions in mm, levels in m, unless noted.",
+             "2. Verify all dimensions on site before fabrication.",
+             "3. Read with the specification and schedules.",
+             "4. Generated with AI-assisted extraction from images;",
+             "    to be checked by a qualified professional."]
+    if spec.note:
+        notes.append(f"5. {spec.note}")
+    for i, line in enumerate(notes):
+        _text(ps, line, (sx + 2, 147 - i * 3.3), 1.5 if i else 1.8, L, ALIGN.LEFT)
+    hline(124)
+
+    # revision history (latest four)
+    _text(ps, "REV", (sx + 1.5, 121.5), 1.4, L, ALIGN.LEFT)
+    _text(ps, "DATE", (sx + 9, 121.5), 1.4, L, ALIGN.LEFT)
+    _text(ps, "DESCRIPTION", (sx + 26, 121.5), 1.4, L, ALIGN.LEFT)
+    _text(ps, "BY", (x1 - 7, 121.5), 1.4, L, ALIGN.LEFT)
+    revs = p.revisions[-4:] if p.revisions else []
+    for i, r in enumerate(revs):
+        yy = 117 - i * 3.6
+        _text(ps, r.rev, (sx + 1.5, yy), 1.6, L, ALIGN.LEFT)
+        _text(ps, r.date, (sx + 9, yy), 1.4, L, ALIGN.LEFT)
+        _text(ps, _fit(r.description, 30, 1.4), (sx + 26, yy), 1.4, L, ALIGN.LEFT)
+        _text(ps, r.by, (x1 - 7, yy), 1.4, L, ALIGN.LEFT)
+    hline(101)
+
+    # project
+    field_(sx, 88, x1, 101, "Project", p.project_name, 2.4)
+    _text(ps, f"Code: {p.project_code or '-'}", (sx + 1.5, 86.5), 1.7, L, ALIGN.LEFT)
+    _text(ps, _fit(f"Client: {p.client or '-'}", w - 3, 1.7), (sx + 1.5, 83), 1.7, L, ALIGN.LEFT)
+    _text(ps, _fit(f"Location: {p.location or '-'}", w - 3, 1.7), (sx + 1.5, 79.5), 1.7, L, ALIGN.LEFT)
+    hline(76)
+    # sheet title
+    _text(ps, "SHEET TITLE", (sx + 1.5, 73.8), 1.4, L, ALIGN.LEFT)
+    ps.add_mtext(title.upper(), dxfattribs={"layer": L, "style": "ADC", "char_height": 2.6,
+                                            "width": w - 4}).set_location((sx + 1.5, 71.5))
+    hline(62)
+    # stage | scale | paper
+    c1, c2 = sx + w * 0.42, sx + w * 0.72
+    vline(c1, 50, 62)
+    vline(c2, 50, 62)
+    field_(sx, 50, c1, 62, "Stage", f"{p.stage}", 2.6)
+    _text(ps, STAGE_NAMES[p.stage], (sx + 11, 52), 1.3, L, ALIGN.LEFT)
+    field_(c1, 50, c2, 62, "Scale", f"1:{ctx.scale}" if spec.north else "NTS", 2.4)
+    field_(c2, 50, x1, 62, "Paper", PAPER_NAME, 2.4)
+    hline(50)
+    # drawn | checked | approved | date
+    d1, d2, d3 = sx + w * 0.22, sx + w * 0.44, sx + w * 0.66
+    for xa in (d1, d2, d3):
+        vline(xa, 38, 50)
+    field_(sx, 38, d1, 50, "Drawn", p.drawn_by)
+    field_(d1, 38, d2, 50, "Checked", p.checked_by)
+    field_(d2, 38, d3, 50, "Approved", p.approved_by)
+    field_(d3, 38, x1, 50, "Date", p.date, 1.9)
+    hline(38)
+    # sheet number + revision
+    vline(x1 - 14, y0, 38)
+    _text(ps, "SHEET NO.", (sx + 1.5, 35.8), 1.4, L, ALIGN.LEFT)
+    _text(ps, short, (sx + 1.5, 24), 5.0, L, ALIGN.MIDDLE_LEFT)
+    _text(ps, sheet_number(ctx.model, short), (sx + 1.5, 13.5), 1.6, L, ALIGN.LEFT)
+    _text(ps, "REV", (x1 - 12.5, 35.8), 1.4, L, ALIGN.LEFT)
+    _text(ps, p.revision, (x1 - 7, 24), 5.0, L)
+
+    # copyright line in the bottom margin
+    year = (p.date or "")[:4] if re.match(r"\d{4}", p.date or "") else ""
+    _text(ps, f"© {year} {p.company_name}. All rights reserved. This drawing and its design are the property of "
+              f"{p.company_name} and may not be copied or used without written permission.".replace("©  ", "© "),
+          (x0, 7.0), 1.5, L, ALIGN.LEFT)
 
 
-def _drawing_title(ctx: Ctx, ps: Paperspace, spec: SheetSpec) -> None:
+def logo_rect() -> tuple[float, float, float, float]:
+    """Logo placement on paper, keeping the image's aspect ratio inside LOGO_BOX."""
+    bx0, by0, bx1, by1 = LOGO_BOX
+    aspect = LOGO_PX[0] / LOGO_PX[1]
+    w = min(bx1 - bx0, (by1 - by0) * aspect)
+    h = w / aspect
+    x0, y0 = (bx0 + bx1 - w) / 2, by0 + (by1 - by0 - h) / 2
+    return x0, y0, x0 + w, y0 + h
+
+
+def _drawing_title(ctx: Ctx, ps: Paperspace, short: str, title: str) -> None:
     L = "G-ANNO-TTLB"
     x, y = PLAN_AREA[0] + 8, 24
     ps.add_circle((x, y), 6, dxfattribs={"layer": L, "lineweight": 35})
     ps.add_line((x - 6, y), (x + 6, y), dxfattribs={"layer": L})
     _text(ps, "1", (x, y + 3), 3, L)
-    _text(ps, spec.number, (x, y - 3), 2, L)
-    _text(ps, spec.title.upper(), (x + 10, y + 1), 4, L, ALIGN.LEFT)
-    ps.add_line((x + 10, y - 1.5), (x + 140, y - 1.5), dxfattribs={"layer": L, "lineweight": 50})
-    _text(ps, f"SCALE 1:{ctx.scale} @ A3", (x + 10, y - 5), 2.2, L, ALIGN.LEFT)
+    _text(ps, short, (x, y - 3), 1.6, L)
+    _text(ps, title.upper(), (x + 10, y + 1), 3.6, L, ALIGN.LEFT)
+    ps.add_line((x + 10, y - 1.5), (x + 160, y - 1.5), dxfattribs={"layer": L, "lineweight": 50})
+    lv = ctx.model.level(ctx.level_id)
+    _text(ps, f"SCALE 1:{ctx.scale} @ {PAPER_NAME}   ·   {lv.name.upper()}   ·   {level_text(lv.ffl)}",
+          (x + 10, y - 5), 2.0, L, ALIGN.LEFT)
 
     # scale bar: five segments of a round length
     seg_m = next(s for s in (0.25, 0.5, 1, 2, 5, 10, 20) if 5 * s * 1000 / ctx.scale >= 40)
@@ -641,8 +862,8 @@ def _viewport(ctx: Ctx, ps: Paperspace, spec: SheetSpec) -> None:
 
 
 def _legend_box(ps, title: str, top: float) -> float:
-    _text(ps, title, (STRIP_X + 3, top), 2.2, "G-ANNO-TEXT", ALIGN.LEFT)
-    return top - 6
+    _text(ps, title, (STRIP_X + 3, top), 2.0, "G-ANNO-TEXT", ALIGN.LEFT)
+    return top - 5.5
 
 
 def legend_ceiling(ctx: Ctx, ps: Paperspace, top: float) -> None:
@@ -650,11 +871,11 @@ def legend_ceiling(ctx: Ctx, ps: Paperspace, top: float) -> None:
     y = _legend_box(ps, "CEILING LEGEND", top)
     for kind in kinds:
         draw_fixture(ps, kind, STRIP_X + 7, y, k=0.012, length=600, layer="G-ANNO-TEXT", text_h=1.0)
-        _text(ps, FIXTURE_LABELS[kind], (STRIP_X + 14, y), 1.8, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-        y -= 6
+        _text(ps, FIXTURE_LABELS[kind], (STRIP_X + 14, y), 1.7, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        y -= 5
     for f in [f for f in ctx.model.finishes if f.category == "ceiling"]:
-        _text(ps, f"{f.code}  {f.description}"[:44], (STRIP_X + 3, y), 1.8, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-        y -= 4.5
+        _text(ps, f"{f.code}  {f.description}"[:44], (STRIP_X + 3, y), 1.6, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        y -= 4
 
 
 def legend_floor(ctx: Ctx, ps: Paperspace, top: float) -> None:
@@ -666,71 +887,164 @@ def legend_floor(ctx: Ctx, ps: Paperspace, top: float) -> None:
         style, spacing, angle = floor_pattern(f)
         hatch_floor(ps, box, (style, min(max(spacing / ctx.scale, 1.0), 2.5), angle), (STRIP_X + 3, y - 3), "G-ANNO-TEXT")
         _text(ps, f.code, (STRIP_X + 15, y + 1.2), 2.0, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-        _text(ps, f.description[:34], (STRIP_X + 15, y - 1.8), 1.6, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        _text(ps, f.description[:34], (STRIP_X + 15, y - 1.8), 1.5, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
         y -= 9
 
 
 def legend_ga(ctx: Ctx, ps: Paperspace, top: float) -> None:
     y = _legend_box(ps, "AREA SUMMARY", top)
-    total = 0.0
-    for r in ctx.model.rooms[:12]:
+    rooms = [r for r in ctx.model.rooms if r.kind == "room"]
+    total = sum(ctx.room_net[r.id].area for r in rooms if r.id in ctx.room_net) / 1e6
+    for r in rooms[:11]:
         a = ctx.room_net[r.id].area / 1e6 if r.id in ctx.room_net else 0
-        total += a
-        _text(ps, r.name[:26], (STRIP_X + 3, y), 1.8, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-        _text(ps, f"{a:.1f} m²", (FRAME[2] - 3, y), 1.8, "G-ANNO-TEXT", ALIGN.MIDDLE_RIGHT)
-        y -= 4.2
-    if len(ctx.model.rooms) > 12:
-        total = sum(n.area for n in ctx.room_net.values()) / 1e6
-        _text(ps, "(see schedule for all rooms)", (STRIP_X + 3, y), 1.6, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-        y -= 4.2
+        _text(ps, _fit(f"{r.number} {r.name}".strip(), 50, 1.7), (STRIP_X + 3, y), 1.7, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        _text(ps, f"{a:.1f} m²", (FRAME[2] - 3, y), 1.7, "G-ANNO-TEXT", ALIGN.MIDDLE_RIGHT)
+        y -= 4
+    if len(rooms) > 11:
+        _text(ps, "(see ID-901 for all rooms)", (STRIP_X + 3, y), 1.5, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        y -= 4
     ps.add_line((STRIP_X + 3, y + 2), (FRAME[2] - 3, y + 2), dxfattribs={"layer": "G-ANNO-TEXT"})
-    _text(ps, "TOTAL NET AREA", (STRIP_X + 3, y - 1), 1.9, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-    _text(ps, f"{total:.1f} m²", (FRAME[2] - 3, y - 1), 1.9, "G-ANNO-TEXT", ALIGN.MIDDLE_RIGHT)
+    _text(ps, "TOTAL NET AREA", (STRIP_X + 3, y - 1), 1.8, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+    _text(ps, f"{total:.1f} m²", (FRAME[2] - 3, y - 1), 1.8, "G-ANNO-TEXT", ALIGN.MIDDLE_RIGHT)
 
 
-# ---------------------------------------------------------------- schedules
+def legend_furniture(ctx: Ctx, ps: Paperspace, top: float) -> None:
+    y = _legend_box(ps, "FF&E TAGS", top)
+    lines = ["F01 = item tag, see ID-913 FF&E schedule.", "Tag suffix shows the item status:",
+             "  (none) New      -R  Reuse existing", "  -M  Modify       -RL Relocate", "  -X  Remove"]
+    for line in lines:
+        _text(ps, line, (STRIP_X + 3, y), 1.6, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        y -= 4
+
+
+def legend_doors(ctx: Ctx, ps: Paperspace, top: float) -> None:
+    y = _legend_box(ps, "DOOR & OPENING TAGS", top)
+    ps.add_circle((STRIP_X + 6, y), 2.4, dxfattribs={"layer": "G-ANNO-TEXT"})
+    _text(ps, "D01", (STRIP_X + 6, y), 1.3, "G-ANNO-TEXT")
+    _text(ps, "Door / opening, see ID-906", (STRIP_X + 11, y), 1.6, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+    y -= 6.5
+    _poly(ps, [(STRIP_X + 3.6, y), (STRIP_X + 6, y - 2.4), (STRIP_X + 8.4, y), (STRIP_X + 6, y + 2.4)], "G-ANNO-TEXT")
+    _text(ps, "W01", (STRIP_X + 6, y), 1.2, "G-ANNO-TEXT")
+    _text(ps, "Window, see ID-906", (STRIP_X + 11, y), 1.6, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+
+
+def legend_hvac(ctx: Ctx, ps: Paperspace, top: float) -> None:
+    y = _legend_box(ps, "HVAC LEGEND", top)
+    for kind in [k for k in AC_LABELS if any(a.type == k for a in ctx.model.ac_units)]:
+        draw_ac_symbol(ps, kind, STRIP_X + 8, y, k=0.007, layer="G-ANNO-TEXT")
+        _text(ps, AC_LABELS[kind], (STRIP_X + 15, y), 1.7, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+        y -= 6
+    _text(ps, "Capacities and routes: see ID-917 / MEP.", (STRIP_X + 3, y), 1.5, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
+
+
+# ---------------------------------------------------------------- schedules (Series 09)
+
+def _room_label(ctx: Ctx, room_id: str) -> str:
+    r = next((r for r in ctx.model.rooms if r.id == room_id), None)
+    return f"{r.number} {r.name}".strip() if r else "-"
+
 
 def _rooms_beside(ctx: Ctx, w: Wall, o: Opening) -> str:
-    from shapely.geometry import Point as SP
-
     names = []
     for side in (1, -1):
         px, py = g.along(w, o.offset + o.width / 2, side * (w.thickness / 2 + 150))
         for r in ctx.model.rooms:
             net = ctx.room_net.get(r.id)
-            if net is not None and net.buffer(100).contains(SP(px, py)):
-                names.append(r.name)
+            if r.kind == "room" and net is not None and net.buffer(100).contains(SPoint(px, py)):
+                names.append(f"{r.number} {r.name}".strip())
                 break
         else:
             names.append("Outside" if w.kind == "exterior" else "-")
     return " / ".join(names)
 
 
-def schedule_tables(ctx: Ctx) -> list[tuple[str, list[float], list[str], list[list[str]]]]:
-    walls = {w.id: w for w in ctx.model.walls}
+Table = tuple[str, list[float], list[str], list[list[str]]]
+
+
+def _multi(ctx: Ctx) -> bool:
+    return len(ctx.model.level_ids()) > 1
+
+
+def schedule_sheets_spec(ctx: Ctx) -> list[tuple[str, str, list[Table]]]:
+    """(register number, title, tables) for each schedule sheet that has content."""
+    m = ctx.model
+    walls = {w.id: w for w in m.walls}
+    lv_col = _multi(ctx)
+    rooms = [r for r in m.rooms if r.kind != "void"]
+    area = lambda rid: ctx.room_net[rid].area / 1e6 if rid in ctx.room_net else 0.0  # noqa: E731
+
+    sheets: list[tuple[str, str, list[Table]]] = []
+
+    sheets.append(("ID-901", "Room finishes schedule", [(
+        "ROOM FINISHES SCHEDULE",
+        ([14] if lv_col else []) + [14, 52, 22, 20, 30, 20, 20, 18, 60],
+        (["Level"] if lv_col else []) + ["No.", "Room", "Area m²", "Floor", "Skirting", "Walls", "Ceiling", "CH", "Remarks"],
+        [([r.level] if lv_col else []) + [
+            r.number, r.name + (" (platform)" if r.kind == "platform" else ""),
+            f"{area(r.id):.2f}", r.floor_finish or "TBC", r.skirting or "-", r.wall_finish or "-",
+            r.ceiling_finish or ("-" if r.kind == "platform" else "TBC"),
+            "-" if r.kind == "platform" else f"{r.ceiling_height:.0f}",
+            level_text(r.floor_level) if r.floor_level else ""]
+         for r in sorted(rooms, key=lambda r: (m.level_ids().index(r.level), r.number, r.name))])]))
+
+    def used_in(code):
+        return ", ".join(sorted({f"{r.number or r.name}" for r in m.rooms
+                                 if code in (r.floor_finish, r.ceiling_finish, r.wall_finish, r.skirting)}))
+
+    sheets.append(("ID-902", "Material & finishes schedule", [(
+        "MATERIAL & FINISHES SCHEDULE", [18, 18, 72, 64, 60, 88],
+        ["Code", "Type", "Description", "Material / colour / size", "Location", "Supplier / notes"],
+        [[f.code, f.category.title(), f.description, f.material, used_in(f.code), f.notes] for f in m.finishes])]))
+
+    ceil_rows = []
+    for f in [f for f in m.finishes if f.category == "ceiling"]:
+        rs = [r for r in m.rooms if r.ceiling_finish == f.code and r.kind == "room"]
+        if rs:
+            heights = sorted({f"{r.ceiling_height:.0f}" for r in rs})
+            ceil_rows.append([f.code, f.description, f.material, ", ".join(heights), f"{sum(area(r.id) for r in rs):.2f}",
+                              ", ".join(r.number or r.name for r in rs)])
+    sheets.append(("ID-905", "Ceiling schedule", [(
+        "CEILING SCHEDULE", [18, 70, 60, 34, 22, 116],
+        ["Code", "Type", "Finish", "Level (CH mm)", "Area m²", "Rooms"], ceil_rows)]))
+
     kind_label = {"door": "Single swing door", "double_door": "Double swing door",
                   "sliding_door": "Sliding door", "window": "Window", "opening": "Opening"}
-    openings = sorted(ctx.model.openings, key=lambda o: (o.kind == "window", o.tag))
-    tables = [
-        ("DOOR & WINDOW SCHEDULE", [18, 40, 18, 18, 16, 70],
-         ["Tag", "Type", "Width", "Height", "Sill", "Location"],
-         [[o.tag, kind_label[o.kind], f"{o.width:.0f}", f"{o.height:.0f}",
-           f"{o.sill_height:.0f}" if o.kind == "window" else "-", _rooms_beside(ctx, walls[o.wall_id], o)]
-          for o in openings]),
-        ("ROOM SCHEDULE", [60, 22, 22, 22, 26],
-         ["Room", "Net area m²", "Floor", "Ceiling", "Ceiling ht."],
-         [[r.name, f"{ctx.room_net[r.id].area / 1e6:.2f}" if r.id in ctx.room_net else "-",
-           r.floor_finish or "-", r.ceiling_finish or "-", f"{r.ceiling_height:.0f}"] for r in ctx.model.rooms]),
-        ("FINISHES SCHEDULE", [18, 20, 80, 60, 102],
-         ["Code", "Type", "Description", "Material", "Notes"],
-         [[f.code, f.category.title(), f.description, f.material, f.notes] for f in ctx.model.finishes]),
-        ("FF&E SCHEDULE", [16, 60, 30, 28, 40, 60, 46],
-         ["Tag", "Item", "Category", "Size WxD", "Room", "Finish", "Source"],
-         [[f.tag, f.name, f.category.replace("_", " "), f"{f.width:.0f}x{f.depth:.0f}",
-           next((r.name for r in ctx.model.rooms if r.id == f.room_id), "-"), f.finish, f.source]
-          for f in sorted(ctx.model.furniture, key=lambda f: f.tag)]),
-    ]
-    return [t for t in tables if t[3]]
+    doors = sorted([o for o in m.openings if o.kind != "window"], key=lambda o: o.tag)
+    windows = sorted([o for o in m.openings if o.kind == "window"], key=lambda o: o.tag)
+    sheets.append(("ID-906", "Door schedule", [
+        ("DOOR SCHEDULE", [16, 36, 26, 22, 34, 24, 98],
+         ["Tag", "Type", "Size WxH", "Status", "Leaf / frame / finish", "Fire rating", "Location"],
+         [[o.tag, kind_label[o.kind], f"{o.width:.0f}x{o.height:.0f}", STATUS_LABEL[o.status], "TBC", "TBC",
+           _rooms_beside(ctx, walls[o.wall_id], o)] for o in doors]),
+        ("WINDOW SCHEDULE", [16, 36, 26, 22, 18, 138],
+         ["Tag", "Type", "Size WxH", "Status", "Sill", "Location"],
+         [[o.tag, kind_label[o.kind], f"{o.width:.0f}x{o.height:.0f}", STATUS_LABEL[o.status], f"{o.sill_height:.0f}",
+           _rooms_beside(ctx, walls[o.wall_id], o)] for o in windows]),
+    ]))
+
+    # identical items are grouped into one line with a quantity
+    groups: dict[tuple, list[Furniture]] = {}
+    for f in sorted(m.furniture, key=lambda f: f.tag):
+        key = (f.name, f.category, round(f.width), round(f.depth), f.finish, f.status)
+        groups.setdefault(key, []).append(f)
+    sheets.append(("ID-913", "FF&E schedule - furniture", [(
+        "FF&E SCHEDULE - FURNITURE", [26, 52, 26, 60, 12, 22, 58, 32],
+        ["Tag(s)", "Item", "Size WxD", "Material / finish", "Qty", "Status", "Location", "Supplier / source"],
+        [[", ".join(f.tag for f in fs) if len(fs) < 4 else f"{fs[0].tag}-{fs[-1].tag}", fs[0].name,
+          f"{fs[0].width:.0f}x{fs[0].depth:.0f}", fs[0].finish or "TBC", str(len(fs)), STATUS_LABEL[fs[0].status],
+          ", ".join(sorted({_room_label(ctx, f.room_id) for f in fs})), fs[0].source]
+         for fs in groups.values()])]))
+
+    sheets.append(("ID-917", "HVAC equipment schedule", [(
+        "HVAC EQUIPMENT SCHEDULE (SPLIT UNITS)", [16, 12, 46, 18, 40, 30, 22, 66, 18],
+        ["Tag", "Level", "Room", "Area m²", "Indoor type", "Capacity", "Mtg ht AFFL", "Outdoor unit location", "Status"],
+        [[a.tag, a.level, _room_label(ctx, a.room_id), f"{area(a.room_id):.1f}" if a.room_id else "-",
+          AC_LABELS[a.type], a.capacity or "TBC",
+          f"{a.mounting_height:.0f}" if a.mounting_height else "-", a.outdoor_location or "TBC", STATUS_LABEL[a.status]]
+         for a in sorted(m.ac_units, key=lambda a: a.tag)])]))
+
+    return [(num, title, [t for t in tables if t[3]]) for num, title, tables in sheets
+            if any(t[3] for t in tables)]
 
 
 def _fit(text: str, width_mm: float, h: float) -> str:
@@ -740,108 +1054,151 @@ def _fit(text: str, width_mm: float, h: float) -> str:
 
 # ---------------------------------------------------------------- assembly
 
-def _new_sheet(ctx: Ctx, spec: SheetSpec) -> Paperspace:
-    ps = ctx.doc.layouts.new(f"{spec.number} {spec.title}"[:255])
+def _new_sheet(ctx: Ctx, spec: SheetSpec, short: str, title: str) -> Paperspace:
+    ps = ctx.doc.layouts.new(f"{short} {title}"[:255])
     ps.page_setup(size=(PAPER_W, PAPER_H), margins=(0, 0, 0, 0), units="mm")
-    _title_block(ctx, ps, spec)
+    _title_block(ctx, ps, spec, short, title)
     return ps
 
 
-def _schedule_sheets(ctx: Ctx, first_number: int) -> list[str]:
-    row_h, head_h, h = 5.0, 6.0, 1.9
+def _schedule_sheets(ctx: Ctx) -> list[str]:
+    row_h, head_h, h = 5.0, 6.0, 1.8
     x_left, y_top, y_min = FRAME[0] + 6, FRAME[3] - 8, FRAME[1] + 8
     names = []
-    sheet = None
-    y = y_top
-    number = first_number
-
-    def new():
-        nonlocal sheet, y, number
-        spec = SheetSpec(f"A-{number}", "Schedules", set())
-        sheet = _new_sheet(ctx, spec)
-        names.append(sheet.name)
-        number += 1
+    for number, title, tables in schedule_sheets_spec(ctx):
+        spec = SheetSpec(number, title, north=False)
+        page = 0
+        sheet = None
         y = y_top
 
-    for title, widths, headers, rows in schedule_tables(ctx):
-        if sheet is None or y - (8 + head_h + 2 * row_h) < y_min:
-            new()
-        _text(sheet, title, (x_left, y), 3.0, "G-ANNO-TEXT", ALIGN.LEFT)
-        y -= 4
+        def new():
+            nonlocal sheet, y, page
+            page += 1
+            short = number if page == 1 else f"{number}.{page}"
+            sheet = _new_sheet(ctx, spec, short, title if page == 1 else f"{title} (cont.)")
+            names.append(sheet.name)
+            y = y_top
 
-        def header():
-            nonlocal y
-            x = x_left
-            _rect(sheet, x_left, y - head_h, x_left + sum(widths), y, "G-ANNO-TEXT", lineweight=25)
-            for wd, hd in zip(widths, headers):
-                _text(sheet, hd.upper(), (x + 1.5, y - head_h / 2), h, "G-ANNO-TEXT", ALIGN.MIDDLE_LEFT)
-                x += wd
-            y -= head_h
-
-        header()
-        for row in rows:
-            if y - row_h < y_min:
+        new()
+        for t_title, widths, headers, rows in tables:
+            if y - (8 + head_h + 2 * row_h) < y_min:
                 new()
-                _text(sheet, f"{title} (CONT.)", (x_left, y), 3.0, "G-ANNO-TEXT", ALIGN.LEFT)
-                y -= 4
-                header()
-            x = x_left
-            _rect(sheet, x_left, y - row_h, x_left + sum(widths), y, "G-ANNO-TEXT")
-            for wd, val in zip(widths, row):
-                _text(sheet, _fit(str(val or ""), wd - 3, h), (x + 1.5, y - row_h / 2), h, "G-ANNO-TEXT",
-                      ALIGN.MIDDLE_LEFT)
-                x += wd
-            y -= row_h
-        y -= 10
+            _text(sheet, t_title, (x_left, y), 3.0, "G-ANNO-TEXT", ALIGN.LEFT)
+            y -= 4
+
+            def header():
+                nonlocal y
+                x = x_left
+                _rect(sheet, x_left, y - head_h, x_left + sum(widths), y, "G-ANNO-TEXT", lineweight=25)
+                for wd, hd in zip(widths, headers):
+                    _text(sheet, _fit(hd.upper(), wd - 2, h), (x + 1.5, y - head_h / 2), h, "G-ANNO-TEXT",
+                          ALIGN.MIDDLE_LEFT)
+                    x += wd
+                y -= head_h
+
+            header()
+            for row in rows:
+                if y - row_h < y_min:
+                    new()
+                    _text(sheet, f"{t_title} (CONT.)", (x_left, y), 3.0, "G-ANNO-TEXT", ALIGN.LEFT)
+                    y -= 4
+                    header()
+                x = x_left
+                _rect(sheet, x_left, y - row_h, x_left + sum(widths), y, "G-ANNO-TEXT")
+                for wd, val in zip(widths, row):
+                    _text(sheet, _fit(str(val or ""), wd - 3, h), (x + 1.5, y - row_h / 2), h, "G-ANNO-TEXT",
+                          ALIGN.MIDDLE_LEFT)
+                    x += wd
+                y -= row_h
+            y -= 10
     return names
 
 
-BASE = {"A-WALL", "A-WALL-PATT", "G-ROOM-NAME"}
-SHEETS = [
-    SheetSpec("A-101", "General arrangement plan",
-              BASE | {"A-DOOR", "A-GLAZ", "A-DOOR-IDEN", "A-ANNO-DIMS", "A-ANNO-DIMS-INTR", "A-AREA-IDEN"},
-              lambda ctx, ps, top: legend_ga(ctx, ps, top)),
-    SheetSpec("ID-101", "Furniture layout plan",
-              BASE | {"A-DOOR", "A-GLAZ", "I-FURN", "I-FURN-IDEN", "A-ANNO-DIMS"}),
-    SheetSpec("ID-102", "Reflected ceiling plan",
-              BASE | {"A-DOOR-HEAD", "A-GLAZ", "I-CLNG", "I-CLNG-IDEN"},
-              lambda ctx, ps, top: legend_ceiling(ctx, ps, top)),
-    SheetSpec("ID-103", "Flooring plan",
-              BASE | {"A-DOOR-HEAD", "A-GLAZ", "I-FLOR-PATT", "I-FLOR-IDEN"},
-              lambda ctx, ps, top: legend_floor(ctx, ps, top)),
+ALL = frozenset(STAGE_NAMES)
+FROM_SD = frozenset({"SD", "DD", "AP", "IFT", "IFC", "AB"})
+FROM_DD = frozenset({"DD", "AP", "IFT", "IFC", "AB"})
+SCHEDULE_STAGES = frozenset({"SD", "DD", "IFT", "IFC", "AB"})  # register: Series 09 not issued at CD or AP
+
+BASE = {"A-WALL", "A-WALL-PATT", "G-ROOM-NAME", "A-FLOR-OPEN", "A-FLOR-LEVL"}
+PLAN_SHEETS = [
+    SheetSpec("ID-201", "General arrangement plan",
+              BASE | {"A-DOOR", "A-GLAZ", "A-ANNO-DIMS", "A-AREA-IDEN"}, legend_ga, FROM_SD),
+    SheetSpec("ID-202", "Furniture layout plan",
+              BASE | {"A-DOOR", "A-GLAZ", "I-FURN", "I-FURN-IDEN"}, legend_furniture, ALL, needs="furniture"),
+    SheetSpec("ID-203", "Dimensioned layout plan",
+              BASE | {"A-DOOR", "A-GLAZ", "A-ANNO-DIMS", "A-ANNO-DIMS-INTR", "I-FURN"}, None, FROM_SD),
+    SheetSpec("ID-204", "Flooring finish plan",
+              BASE | {"A-DOOR-HEAD", "A-GLAZ", "I-FLOR-PATT", "I-FLOR-IDEN"}, legend_floor, FROM_SD),
+    SheetSpec("ID-208", "Door & opening plan",
+              BASE | {"A-DOOR", "A-GLAZ", "A-DOOR-IDEN"}, legend_doors, FROM_SD, needs="openings"),
+    SheetSpec("ID-301", "Reflected ceiling plan (RCP)",
+              BASE | {"A-DOOR-HEAD", "A-GLAZ", "I-CLNG", "I-CLNG-IDEN"}, legend_ceiling, FROM_SD,
+              needs="ceiling_fixtures"),
+    SheetSpec("ID-405", "HVAC coordination plan",
+              BASE | {"A-DOOR-HEAD", "A-GLAZ", "M-HVAC-EQPM", "M-HVAC-IDEN", "M-HVAC-DIMS"}, legend_hvac, FROM_DD,
+              needs="ac_units", note="FOR COORDINATION ONLY - design intent for the MEP engineer."),
 ]
+
+
+def _sheet_wanted(spec: SheetSpec, model: BuildingModel, stage: str) -> bool:
+    if stage not in spec.stages:
+        return False
+    if stage == "CD" and spec.number != "ID-202":  # register: concept client deck carries ID-202 only
+        return False
+    return not spec.needs or bool(getattr(model, spec.needs))
 
 
 def build_dxf(model: BuildingModel) -> tuple[ezdxf.document.Drawing, list[str], int]:
     """Returns the document, the layout names in sheet order and the plan scale."""
-    scale = choose_scale(model)
+    levels = model.level_ids()
+    parts = [g.level_model(model, lv) for lv in levels]
+    scale = max(choose_scale(p) for p in parts)
     doc = ezdxf.new("R2018", setup=True)
     _setup(doc, scale)
-    geo = g.wall_geometry(model)
-    ctx = Ctx(model=model, doc=doc, msp=doc.modelspace(), scale=scale, geo=geo)
-    ctx.room_net = {r.id: g.room_net_polygon(r.polygon, geo.solid) for r in model.rooms}
+    msp = doc.modelspace()
+    # The DXF references the logo next to it (the CAD download ships both files).
+    logo_def = doc.add_image_def(filename=LOGO_FILE.name, size_in_pixel=LOGO_PX) if LOGO_FILE.exists() else None
 
-    draw_flooring(ctx)
-    draw_walls(ctx)
-    draw_openings(ctx)
-    draw_room_tags(ctx)
-    draw_dimensions(ctx)
-    draw_furniture(ctx)
-    draw_ceiling(ctx)
+    # lay the levels out side by side in model space
+    ctxs: list[Ctx] = []
+    cursor = 0.0
+    for lv, part in zip(levels, parts):
+        x0, _, x1, _ = g.extents(part)
+        part = g.translate(part, cursor - x0)
+        cursor += (x1 - x0) + LEVEL_GAP
+        geo = g.wall_geometry(part)
+        ctx = Ctx(model=part, doc=doc, msp=msp, scale=scale, geo=geo, level_id=lv,
+                  suffix=f".{lv}" if len(levels) > 1 else "", logo_def=logo_def)
+        ctx.room_net = {r.id: g.room_net_polygon(r.polygon, geo.solid) for r in part.rooms}
+        for draw in (draw_flooring, draw_walls, draw_openings, draw_levels_and_voids, draw_room_tags,
+                     draw_dimensions, draw_furniture, draw_ceiling, draw_ac_units):
+            draw(ctx)
+        ctxs.append(ctx)
 
+    stage = model.project.stage
     names = []
-    for spec in SHEETS:
-        if spec.number == "ID-101" and not model.furniture:
-            continue
-        if spec.number == "ID-102" and not model.ceiling_fixtures:
-            continue
-        ps = _new_sheet(ctx, spec)
-        _viewport(ctx, ps, spec)
-        _drawing_title(ctx, ps, spec)
-        if spec.legend:
-            spec.legend(ctx, ps, FRAME[3] - 30)
-        names.append(ps.name)
-    names += _schedule_sheets(ctx, 601)
+    for spec in PLAN_SHEETS:  # register order: all levels of one sheet type together
+        for ctx in ctxs:
+            if not _sheet_wanted(spec, ctx.model, stage):
+                continue
+            short = f"{spec.number}{ctx.suffix}"
+            title = spec.title
+            ps = _new_sheet(ctx, spec, short, title)
+            _viewport(ctx, ps, spec)
+            _drawing_title(ctx, ps, short, f"{ctx.model.level(ctx.level_id).name} - {title}"
+                           if len(levels) > 1 else title)
+            if spec.legend:
+                spec.legend(ctx, ps, LEGEND_TOP)
+            names.append(ps.name)
+
+    if stage in SCHEDULE_STAGES:
+        merged = model.model_copy(update={
+            k: [x for c in ctxs for x in getattr(c.model, k)]
+            for k in ("walls", "openings", "rooms", "furniture", "ceiling_fixtures", "ac_units")})
+        sctx = Ctx(model=merged, doc=doc, msp=msp, scale=scale, geo=ctxs[0].geo,
+                   room_net={k: v for c in ctxs for k, v in c.room_net.items()}, logo_def=logo_def)
+        names += _schedule_sheets(sctx)
+
     if "Layout1" in doc.layouts:  # ezdxf's default empty sheet
         doc.layouts.delete("Layout1")
     return doc, names, scale

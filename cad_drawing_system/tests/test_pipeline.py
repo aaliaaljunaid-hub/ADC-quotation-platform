@@ -18,16 +18,17 @@ def model() -> BuildingModel:
     return BuildingModel.model_validate_json(SAMPLE.read_text())
 
 
-def test_sample_model_has_no_issues(model):
-    assert validation.validate(model) == []
+def test_sample_model_has_no_errors_or_warnings(model):
+    issues = validation.validate(model)
+    assert [(i.level, i.item) for i in issues] == [("pricing", "AC-03")]  # left open on purpose in the sample
 
 
 def test_drawing_set_is_valid_dxf_and_pdf(model, tmp_path):
+    model.project.stage = "DD"
     doc, names, scale = dxf_writer.build_dxf(model)
     assert scale == 50
-    assert names[:4] == ["A-101 General arrangement plan", "ID-101 Furniture layout plan",
-                         "ID-102 Reflected ceiling plan", "ID-103 Flooring plan"]
-    assert all(n.startswith("A-60") for n in names[4:])
+    assert [n.split()[0] for n in names] == ["ID-201", "ID-202", "ID-203", "ID-204", "ID-208", "ID-301", "ID-405",
+                                             "ID-901", "ID-902", "ID-905", "ID-906", "ID-913", "ID-917"]
     dxf = tmp_path / "set.dxf"
     doc.saveas(dxf)
     reloaded = ezdxf.readfile(dxf)
@@ -36,7 +37,7 @@ def test_drawing_set_is_valid_dxf_and_pdf(model, tmp_path):
     assert "Layout1" not in reloaded.layouts
 
     # each plan sheet shows only its own layers
-    rcp = reloaded.layouts.get("ID-102 Reflected ceiling plan")
+    rcp = reloaded.layouts.get("ID-301 Reflected ceiling plan (RCP)")
     vp = next(e for e in rcp if e.dxftype() == "VIEWPORT" and e.dxf.id > 1)
     assert "I-FURN" in vp.frozen_layers and "I-CLNG" not in vp.frozen_layers
 
@@ -185,7 +186,7 @@ def test_api_end_to_end(tmp_path, monkeypatch):
     model = c.get(f"/api/projects/{pid}/model").json()
     model["project"]["project_name"] = "Villa Fit-out"
     r = c.put(f"/api/projects/{pid}/model", json=model)
-    assert r.status_code == 200 and r.json()["issues"] == []
+    assert r.status_code == 200 and all(i["level"] == "pricing" for i in r.json()["issues"])
 
     broken = json.loads(json.dumps(model))
     broken["openings"][0]["offset"] = 99999
@@ -196,8 +197,97 @@ def test_api_end_to_end(tmp_path, monkeypatch):
     r = c.post(f"/api/projects/{pid}/generate")
     assert r.status_code == 200, r.text
     outputs = r.json()["outputs"]
-    assert sorted(outputs) == ["Villa_Fit-out.dxf", "Villa_Fit-out.pdf"]
+    assert sorted(outputs) == ["Villa_Fit-out.dxf", "Villa_Fit-out.pdf", "Villa_Fit-out_CAD.zip"]
+    import zipfile
+    z = zipfile.ZipFile(io.BytesIO(c.get(f"/api/projects/{pid}/files/Villa_Fit-out_CAD.zip").content))
+    assert sorted(z.namelist()) == ["Villa_Fit-out.dxf", "aalia_logo.png"]
     pdf = c.get(f"/api/projects/{pid}/files/Villa_Fit-out.pdf")
     assert pdf.status_code == 200 and pdf.content[:4] == b"%PDF"
     assert c.get(f"/api/projects/{pid}/files/..%2Fproject.json").status_code == 404
     assert c.get("/api/projects/notanid").status_code == 404
+
+
+# ---------------------------------------------------------------- register & checklist features
+
+@pytest.mark.parametrize("stage, expected", [
+    ("CD", ["ID-202"]),
+    ("SD", ["ID-201", "ID-202", "ID-203", "ID-204", "ID-208", "ID-301",
+            "ID-901", "ID-902", "ID-905", "ID-906", "ID-913", "ID-917"]),
+    ("AP", ["ID-201", "ID-202", "ID-203", "ID-204", "ID-208", "ID-301", "ID-405"]),
+])
+def test_stage_decides_which_sheets_are_issued(model, stage, expected):
+    model.project.stage = stage
+    _, names, _ = dxf_writer.build_dxf(model)
+    assert [n.split()[0] for n in names] == expected
+
+
+def test_sheet_number_follows_register(model):
+    assert dxf_writer.sheet_number(model, "ID-203") == "ADC-SMP26-ID-203-B"
+    assert dxf_writer.level_text(400) == "FFL +0.40"
+    assert dxf_writer.level_text(0) == "FFL ±0.00"
+
+
+def _two_levels(model: BuildingModel) -> BuildingModel:
+    ff = model.model_copy(deep=True)
+    for coll in ("walls", "rooms", "furniture", "ceiling_fixtures", "ac_units", "openings"):
+        for x in getattr(ff, coll):
+            x.id = "ff_" + x.id
+            if hasattr(x, "level"):
+                x.level = "FF"
+            if coll == "openings":
+                x.wall_id = "ff_" + x.wall_id
+                x.tag = "F" + x.tag
+            if coll in ("furniture", "ac_units"):
+                x.tag = "FF-" + x.tag
+                x.room_id = "ff_" + x.room_id
+            if coll == "rooms":
+                x.number = "1" + x.number
+    m = model.model_copy(deep=True)
+    m.levels.append(m.level("FF").model_copy(update={"ffl": 4200}))
+    for coll in ("walls", "rooms", "furniture", "ceiling_fixtures", "ac_units", "openings"):
+        getattr(m, coll).extend(getattr(ff, coll))
+    return m
+
+
+def test_multi_level_sets_get_level_suffixes(model):
+    m = _two_levels(model)
+    assert m.level_ids() == ["GF", "FF"]
+    assert not [i for i in validation.validate(m) if i.level == "error"]
+    # snapping works per level: identical plans stacked do not interfere
+    assert geometry.normalize(m).walls[0].start == m.walls[0].start
+    m.project.stage = "DD"
+    doc, names, _ = dxf_writer.build_dxf(m)
+    shorts = [n.split()[0] for n in names]
+    assert shorts[:4] == ["ID-201.GF", "ID-201.FF", "ID-202.GF", "ID-202.FF"]
+    assert "ID-901" in shorts  # one schedule for the whole project
+    # the FF model space copy is placed to the right of the GF one
+    xs = [e.dxf.start.x for e in doc.modelspace().query("LINE[layer=='A-DOOR-HEAD']")]
+    assert max(xs) > 12200 + dxf_writer.LEVEL_GAP
+
+
+def test_platform_and_void(model, tmp_path):
+    from app.schema import Point, Room
+    living = next(r for r in model.rooms if r.id == "r1")
+    model.rooms += [
+        Room(id="p1", name="Pedicure platform", kind="platform", floor_level=400, floor_finish="FL-01",
+             polygon=[Point(x=500, y=500), Point(x=2500, y=500), Point(x=2500, y=1500), Point(x=500, y=1500)]),
+        Room(id="v1", name="Void", kind="void",
+             polygon=[Point(x=5000, y=3500), Point(x=7000, y=3500), Point(x=7000, y=4800), Point(x=5000, y=4800)]),
+    ]
+    issues = validation.validate(model)
+    assert not [i for i in issues if i.item in ("Pedicure platform", "Void") and i.level != "pricing"]
+    doc, names, _ = dxf_writer.build_dxf(model)
+    texts = [t.dxf.text for t in doc.modelspace().query("TEXT")]
+    assert "PEDICURE PLATFORM  FFL +0.40" in texts and "VOID" in texts
+    assert living.floor_finish == "FL-02"
+
+
+def test_pricing_readiness_and_revision_rules(model):
+    model.furniture[0].status = ""
+    model.project.stage = "IFC"
+    model.project.client = ""
+    found = {(i.level, i.item) for i in validation.validate(model)}
+    assert ("pricing", "F01") in found
+    assert ("pricing", "Client") in found
+    assert ("warning", "Revision") in found  # letters are not allowed once issued for construction
+    assert ("warning", "Approved by") in found

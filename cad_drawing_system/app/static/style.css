@@ -79,6 +79,9 @@ textarea { width: 100%; resize: vertical; }
 .issues li, .notes li { padding: 6px 8px; border-left: 3px solid var(--line); margin-bottom: 4px; background: #fafbfc; font-size: 13px; }
 .issues li.error { border-color: var(--danger); }
 .issues li.warning { border-color: var(--warn); }
+.issues li.pricing { border-color: #1f4e79; }
+.hint.small { font-size: 12px; margin: -4px 0 8px; }
+.legend-row select { padding: 2px 4px; font-size: 12px; }
 .issues li b { margin-right: 4px; }
 .pill { background: var(--bg); border-radius: 10px; padding: 1px 8px; font-weight: 600; }
 

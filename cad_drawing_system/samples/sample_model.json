@@ -3,14 +3,29 @@
  "project": {
   "project_name": "Sample Apartment Fit-out",
   "client": "Sample Client",
-  "location": "Dubai, UAE",
-  "company_name": "ADC Interiors",
-  "drawn_by": "AI/ADC",
+  "location": "Villa 12, Al Barsha 2, Dubai, UAE",
+  "company_name": "Aalia Designs & Consultations",
+  "drawn_by": "AA",
   "checked_by": "",
   "date": "2026-10-28",
-  "revision": "P01",
-  "status": "PRELIMINARY - NOT FOR CONSTRUCTION",
-  "project_number": "ADC-0001"
+  "revision": "B",
+  "project_code": "SMP26",
+  "approved_by": "",
+  "stage": "SD",
+  "revisions": [
+   {
+    "rev": "A",
+    "date": "2026-10-14",
+    "description": "First issue for client review",
+    "by": "AA"
+   },
+   {
+    "rev": "B",
+    "date": "2026-10-28",
+    "description": "Kitchen island added, finishes updated",
+    "by": "AA"
+   }
+  ]
  },
  "walls": [
   {
@@ -25,7 +40,9 @@
    },
    "thickness": 200,
    "kind": "exterior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "E2",
@@ -39,7 +56,9 @@
    },
    "thickness": 200,
    "kind": "exterior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "E3",
@@ -53,7 +72,9 @@
    },
    "thickness": 200,
    "kind": "exterior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "E4",
@@ -67,7 +88,9 @@
    },
    "thickness": 200,
    "kind": "exterior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "I1",
@@ -81,7 +104,9 @@
    },
    "thickness": 150,
    "kind": "interior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "I2",
@@ -95,7 +120,9 @@
    },
    "thickness": 100,
    "kind": "partition",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "I3",
@@ -109,7 +136,9 @@
    },
    "thickness": 150,
    "kind": "interior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "I4",
@@ -123,7 +152,9 @@
    },
    "thickness": 150,
    "kind": "interior",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "I5",
@@ -137,7 +168,9 @@
    },
    "thickness": 100,
    "kind": "partition",
-   "height": 3000
+   "height": 3000,
+   "level": "GF",
+   "status": "new"
   }
  ],
  "openings": [
@@ -151,7 +184,8 @@
    "height": 2100,
    "sill_height": 0,
    "hinge": "end",
-   "swing": "left"
+   "swing": "left",
+   "status": "new"
   },
   {
    "id": "o2",
@@ -163,7 +197,8 @@
    "height": 2100,
    "sill_height": 0,
    "hinge": "start",
-   "swing": "right"
+   "swing": "right",
+   "status": "new"
   },
   {
    "id": "o3",
@@ -175,7 +210,8 @@
    "height": 2100,
    "sill_height": 0,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "new"
   },
   {
    "id": "o4",
@@ -187,7 +223,8 @@
    "height": 2100,
    "sill_height": 0,
    "hinge": "start",
-   "swing": "right"
+   "swing": "right",
+   "status": "new"
   },
   {
    "id": "o5",
@@ -199,7 +236,8 @@
    "height": 2100,
    "sill_height": 0,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "new"
   },
   {
    "id": "o6",
@@ -211,7 +249,8 @@
    "height": 2400,
    "sill_height": 0,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "new"
   },
   {
    "id": "w1",
@@ -223,7 +262,8 @@
    "height": 1500,
    "sill_height": 900,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "reuse"
   },
   {
    "id": "w2",
@@ -235,7 +275,8 @@
    "height": 1500,
    "sill_height": 900,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "reuse"
   },
   {
    "id": "w3",
@@ -247,7 +288,8 @@
    "height": 1500,
    "sill_height": 900,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "reuse"
   },
   {
    "id": "w4",
@@ -259,7 +301,8 @@
    "height": 1200,
    "sill_height": 1050,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "reuse"
   },
   {
    "id": "w5",
@@ -271,7 +314,8 @@
    "height": 600,
    "sill_height": 1500,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "reuse"
   },
   {
    "id": "w6",
@@ -283,7 +327,8 @@
    "height": 2100,
    "sill_height": 0,
    "hinge": "start",
-   "swing": "left"
+   "swing": "left",
+   "status": "reuse"
   }
  ],
  "rooms": [
@@ -310,7 +355,13 @@
    ],
    "floor_finish": "FL-02",
    "ceiling_finish": "CL-01",
-   "ceiling_height": 3000
+   "ceiling_height": 3000,
+   "number": "01",
+   "kind": "room",
+   "floor_level": 0,
+   "level": "GF",
+   "wall_finish": "WL-01",
+   "skirting": "SK-01"
   },
   {
    "id": "r2",
@@ -335,7 +386,13 @@
    ],
    "floor_finish": "FL-01",
    "ceiling_finish": "CL-01",
-   "ceiling_height": 2700
+   "ceiling_height": 2700,
+   "number": "02",
+   "kind": "room",
+   "floor_level": 0,
+   "level": "GF",
+   "wall_finish": "WL-01",
+   "skirting": ""
   },
   {
    "id": "r3",
@@ -360,7 +417,13 @@
    ],
    "floor_finish": "FL-02",
    "ceiling_finish": "CL-01",
-   "ceiling_height": 2700
+   "ceiling_height": 2700,
+   "number": "03",
+   "kind": "room",
+   "floor_level": 0,
+   "level": "GF",
+   "wall_finish": "WL-01",
+   "skirting": "SK-01"
   },
   {
    "id": "r4",
@@ -385,7 +448,13 @@
    ],
    "floor_finish": "FL-01",
    "ceiling_finish": "CL-01",
-   "ceiling_height": 2600
+   "ceiling_height": 2600,
+   "number": "04",
+   "kind": "room",
+   "floor_level": 0,
+   "level": "GF",
+   "wall_finish": "WL-01",
+   "skirting": "SK-01"
   },
   {
    "id": "r5",
@@ -410,7 +479,13 @@
    ],
    "floor_finish": "FL-03",
    "ceiling_finish": "CL-02",
-   "ceiling_height": 2400
+   "ceiling_height": 2400,
+   "number": "05",
+   "kind": "room",
+   "floor_level": 0,
+   "level": "GF",
+   "wall_finish": "WL-02",
+   "skirting": ""
   },
   {
    "id": "r6",
@@ -435,7 +510,13 @@
    ],
    "floor_finish": "FL-02",
    "ceiling_finish": "CL-01",
-   "ceiling_height": 2700
+   "ceiling_height": 2700,
+   "number": "06",
+   "kind": "room",
+   "floor_level": 0,
+   "level": "GF",
+   "wall_finish": "WL-01",
+   "skirting": "SK-01"
   }
  ],
  "furniture": [
@@ -453,7 +534,9 @@
    "rotation": 0,
    "room_id": "r1",
    "finish": "Grey boucle fabric",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f2",
@@ -469,7 +552,9 @@
    "rotation": 0,
    "room_id": "r1",
    "finish": "Walnut veneer",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f3",
@@ -485,7 +570,9 @@
    "rotation": 90,
    "room_id": "r1",
    "finish": "Cognac leather",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f4",
@@ -501,7 +588,9 @@
    "rotation": 0,
    "room_id": "r1",
    "finish": "Wool, beige",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f5",
@@ -517,7 +606,9 @@
    "rotation": 180,
    "room_id": "r1",
    "finish": "Oak veneer",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f6",
@@ -533,7 +624,9 @@
    "rotation": 90,
    "room_id": "r1",
    "finish": "Oak solid",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f7",
@@ -548,8 +641,10 @@
    "depth": 500,
    "rotation": 270,
    "room_id": "r1",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Oak frame, linen seat",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f8",
@@ -564,8 +659,10 @@
    "depth": 500,
    "rotation": 270,
    "room_id": "r1",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Oak frame, linen seat",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f9",
@@ -580,8 +677,10 @@
    "depth": 500,
    "rotation": 90,
    "room_id": "r1",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Oak frame, linen seat",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f10",
@@ -596,8 +695,10 @@
    "depth": 500,
    "rotation": 90,
    "room_id": "r1",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Oak frame, linen seat",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f11",
@@ -613,7 +714,9 @@
    "rotation": 270,
    "room_id": "r2",
    "finish": "Matte lacquer, quartz top",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f12",
@@ -629,7 +732,9 @@
    "rotation": 90,
    "room_id": "r2",
    "finish": "Quartz top",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f13",
@@ -644,8 +749,10 @@
    "depth": 700,
    "rotation": 270,
    "room_id": "r2",
-   "finish": "",
-   "source": "floor plan"
+   "finish": "Existing",
+   "source": "floor plan",
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "f14",
@@ -660,8 +767,10 @@
    "depth": 550,
    "rotation": 270,
    "room_id": "r2",
-   "finish": "",
-   "source": "floor plan"
+   "finish": "Existing",
+   "source": "floor plan",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f15",
@@ -676,8 +785,10 @@
    "depth": 500,
    "rotation": 270,
    "room_id": "r2",
-   "finish": "",
-   "source": "floor plan"
+   "finish": "Existing",
+   "source": "floor plan",
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "f16",
@@ -693,7 +804,9 @@
    "rotation": 0,
    "room_id": "r3",
    "finish": "Upholstered headboard",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f17",
@@ -708,8 +821,10 @@
    "depth": 400,
    "rotation": 0,
    "room_id": "r3",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Oak veneer",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f18",
@@ -724,8 +839,10 @@
    "depth": 400,
    "rotation": 0,
    "room_id": "r3",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Oak veneer",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f19",
@@ -741,7 +858,9 @@
    "rotation": 270,
    "room_id": "r3",
    "finish": "Oak veneer",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f20",
@@ -756,8 +875,10 @@
    "depth": 650,
    "rotation": 0,
    "room_id": "r5",
-   "finish": "",
-   "source": "floor plan"
+   "finish": "Existing",
+   "source": "floor plan",
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "f21",
@@ -772,8 +893,10 @@
    "depth": 450,
    "rotation": 0,
    "room_id": "r5",
-   "finish": "",
-   "source": "floor plan"
+   "finish": "Existing",
+   "source": "floor plan",
+   "level": "GF",
+   "status": "reuse"
   },
   {
    "id": "f22",
@@ -788,8 +911,10 @@
    "depth": 850,
    "rotation": 0,
    "room_id": "r5",
-   "finish": "",
-   "source": "floor plan"
+   "finish": "Existing",
+   "source": "floor plan",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f23",
@@ -804,8 +929,10 @@
    "depth": 2000,
    "rotation": 0,
    "room_id": "r6",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Existing",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f24",
@@ -821,7 +948,9 @@
    "rotation": 90,
    "room_id": "r6",
    "finish": "Oak veneer",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f25",
@@ -836,8 +965,10 @@
    "depth": 500,
    "rotation": 90,
    "room_id": "r6",
-   "finish": "",
-   "source": "render 1"
+   "finish": "Mesh, black",
+   "source": "render 1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "f26",
@@ -853,7 +984,9 @@
    "rotation": 180,
    "room_id": "r6",
    "finish": "Oak veneer",
-   "source": "render 1"
+   "source": "render 1",
+   "level": "GF",
+   "status": "modify"
   }
  ],
  "ceiling_fixtures": [
@@ -866,7 +999,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c2",
@@ -877,7 +1012,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c3",
@@ -888,7 +1025,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c4",
@@ -899,7 +1038,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c5",
@@ -910,7 +1051,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c6",
@@ -921,7 +1064,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c7",
@@ -932,7 +1077,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c8",
@@ -943,7 +1090,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r1",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c9",
@@ -954,7 +1103,9 @@
    },
    "length": 1800,
    "rotation": 90,
-   "room_id": "r2"
+   "room_id": "r2",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c10",
@@ -965,7 +1116,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r2"
+   "room_id": "r2",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c11",
@@ -976,7 +1129,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r2"
+   "room_id": "r2",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c12",
@@ -987,7 +1142,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r2"
+   "room_id": "r2",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c13",
@@ -998,29 +1155,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r2"
-  },
-  {
-   "id": "c14",
-   "kind": "ac_supply",
-   "position": {
-    "x": 3000,
-    "y": 2500
-   },
-   "length": 0,
-   "rotation": 0,
-   "room_id": "r1"
-  },
-  {
-   "id": "c15",
-   "kind": "ac_return",
-   "position": {
-    "x": 6800,
-    "y": 4300
-   },
-   "length": 0,
-   "rotation": 0,
-   "room_id": "r1"
+   "room_id": "r2",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c16",
@@ -1031,7 +1168,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r4"
+   "room_id": "r4",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c17",
@@ -1042,7 +1181,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r4"
+   "room_id": "r4",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c18",
@@ -1053,7 +1194,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r4"
+   "room_id": "r4",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c19",
@@ -1064,7 +1207,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r5"
+   "room_id": "r5",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c20",
@@ -1075,7 +1220,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r5"
+   "room_id": "r5",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c21",
@@ -1086,18 +1233,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r5"
-  },
-  {
-   "id": "c22",
-   "kind": "ac_supply",
-   "position": {
-    "x": 2250,
-    "y": 6200
-   },
-   "length": 0,
-   "rotation": 0,
-   "room_id": "r3"
+   "room_id": "r5",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c23",
@@ -1108,7 +1246,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r3"
+   "room_id": "r3",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c24",
@@ -1119,7 +1259,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r3"
+   "room_id": "r3",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c25",
@@ -1130,7 +1272,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r3"
+   "room_id": "r3",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c26",
@@ -1141,7 +1285,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r3"
+   "room_id": "r3",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c27",
@@ -1152,7 +1298,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r3"
+   "room_id": "r3",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c28",
@@ -1163,7 +1311,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r6"
+   "room_id": "r6",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c29",
@@ -1174,7 +1324,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r6"
+   "room_id": "r6",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c30",
@@ -1185,7 +1337,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r6"
+   "room_id": "r6",
+   "level": "GF",
+   "status": "new"
   },
   {
    "id": "c31",
@@ -1196,18 +1350,9 @@
    },
    "length": 0,
    "rotation": 0,
-   "room_id": "r6"
-  },
-  {
-   "id": "c32",
-   "kind": "ac_supply",
-   "position": {
-    "x": 9750,
-    "y": 6200
-   },
-   "length": 0,
-   "rotation": 0,
-   "room_id": "r6"
+   "room_id": "r6",
+   "level": "GF",
+   "status": "new"
   }
  ],
  "finishes": [
@@ -1245,9 +1390,107 @@
    "description": "Moisture resistant gypsum ceiling",
    "material": "12.5 mm MR board",
    "notes": "Anti-mould paint"
+  },
+  {
+   "code": "WL-01",
+   "category": "wall",
+   "description": "Emulsion paint, matt",
+   "material": "Jotun Fenomastic, colour TBC by client",
+   "notes": "2 coats on primer"
+  },
+  {
+   "code": "WL-02",
+   "category": "wall",
+   "description": "Porcelain wall tile 300x600",
+   "material": "Porcelain, white gloss",
+   "notes": "Full height in wet areas"
+  },
+  {
+   "code": "SK-01",
+   "category": "skirting",
+   "description": "Oak skirting 80 mm",
+   "material": "Solid oak, natural oil",
+   "notes": "Shadow-gap detail"
   }
  ],
  "extraction_notes": [
   "Sample model for testing - not extracted from an image."
+ ],
+ "levels": [
+  {
+   "id": "GF",
+   "name": "Ground Floor",
+   "ffl": 0
+  }
+ ],
+ "ac_units": [
+  {
+   "id": "a1",
+   "tag": "AC-01",
+   "level": "GF",
+   "room_id": "r1",
+   "type": "wall_mounted",
+   "position": {
+    "x": 450,
+    "y": 4700
+   },
+   "rotation": 0,
+   "capacity": "24,000 BTU/h",
+   "mounting_height": 2350,
+   "outdoor_location": "Roof, above living",
+   "status": "new",
+   "notes": ""
+  },
+  {
+   "id": "a2",
+   "tag": "AC-02",
+   "level": "GF",
+   "room_id": "r3",
+   "type": "wall_mounted",
+   "position": {
+    "x": 2250,
+    "y": 8750
+   },
+   "rotation": 0,
+   "capacity": "12,000 BTU/h",
+   "mounting_height": 2300,
+   "outdoor_location": "Roof",
+   "status": "new",
+   "notes": ""
+  },
+  {
+   "id": "a3",
+   "tag": "AC-03",
+   "level": "GF",
+   "room_id": "r6",
+   "type": "wall_mounted",
+   "position": {
+    "x": 11750,
+    "y": 7000
+   },
+   "rotation": 90,
+   "capacity": "by MEP",
+   "mounting_height": 2300,
+   "outdoor_location": "",
+   "status": "new",
+   "notes": ""
+  },
+  {
+   "id": "a4",
+   "tag": "AC-04",
+   "level": "GF",
+   "room_id": "r2",
+   "type": "ceiling_cassette",
+   "position": {
+    "x": 9600,
+    "y": 3800
+   },
+   "rotation": 0,
+   "capacity": "18,000 BTU/h",
+   "mounting_height": 0,
+   "outdoor_location": "Roof",
+   "status": "new",
+   "notes": ""
+  }
  ]
 }

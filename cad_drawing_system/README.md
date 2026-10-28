@@ -14,27 +14,72 @@ The building model (`app/schema.py`) is the single source of truth. Every
 sheet is generated from it, so a correction made once appears on every
 drawing and schedule.
 
-## Drawing set produced
+## Drawing set produced (ADC Interior Design Drawing Register)
 
-| Sheet | Content |
-|---|---|
-| A-101 General arrangement plan | Walls with poché, doors with swings, windows, door/window tags, room names and net areas, three exterior dimension chains (openings, building breaks, overall), clear internal room dimensions, area summary |
-| ID-101 Furniture layout plan | FF&E symbols (sofas, beds, sanitaryware, kitchen, etc.) with tags |
-| ID-102 Reflected ceiling plan | Lighting, AC diffusers/grilles, detectors, exhaust fans; ceiling finish and height per room; symbol legend |
-| ID-103 Flooring plan | Floor patterns at true size (tile grid from e.g. "600x600", plank lines, carpet), finish codes, legend |
-| A-6xx Schedules | Door & window schedule (with rooms each side), room schedule, finishes schedule, FF&E schedule; continues onto more sheets automatically |
+Sheet numbers, titles and order follow the ADC drawing register. The full
+number is `ADC-[Project code]-ID-[Series][Sheet]-[Revision]`, e.g.
+`ADC-VLA24-ID-203-B`. Multi-floor projects get one plan sheet per level with a
+suffix (`ID-201.GF`, `ID-201.FF`); schedules cover the whole project.
 
-All sheets are A3 landscape with a title block (company, project, client, drawing
-number, revision, scale, date, drawn/checked, status), north arrow, scale bar and
-standard notes. The scale is picked automatically (1:20 to 1:500) so the plan
-fits. The furniture sheet is left out when there is no furniture, and the
-ceiling sheet when there are no ceiling fixtures.
+| Sheet | Content | Issued at |
+|---|---|---|
+| ID-201 General Arrangement Plan | Walls with poché, doors, windows, room numbers, names and net areas, platforms with levels, voids, exterior dimension chains, area summary | SD onwards |
+| ID-202 Furniture Layout Plan | FF&E symbols with tags; tag suffix shows status (-R reuse, -M modify, -RL relocate, -X remove) | all stages (only sheet at CD) |
+| ID-203 Dimensioned Layout Plan | Exterior chains plus clear room dimensions, furniture for setting out | SD onwards |
+| ID-204 Flooring Finish Plan | True-size patterns (tile grid from "600x600", planks, carpet), finish codes, platforms with their own finish, legend | SD onwards |
+| ID-208 Door & Opening Plan | Door and window tags linked to ID-906 | SD onwards |
+| ID-301 Reflected Ceiling Plan (RCP) | Fixtures, ceiling finish and height per room, legend | SD onwards |
+| ID-405 HVAC Coordination Plan | Split units drawn to scale with tags and set-out dimensions from the nearest walls; marked "for coordination only" | DD onwards |
+| ID-901 Room Finishes Schedule | No., room, area, floor, skirting, walls, ceiling, CH, remarks | SD, DD, IFT, IFC, AB |
+| ID-902 Material & Finishes Schedule | Code, type, description, material, rooms where used, supplier/notes | 〃 |
+| ID-905 Ceiling Schedule | Code, type, finish, heights, area, rooms | 〃 |
+| ID-906 Door Schedule | Doors and windows: tag, type, size, status, location (rooms each side) | 〃 |
+| ID-913 FF&E Schedule — Furniture | Identical items grouped with quantity, size, finish, status, location, source | 〃 |
+| ID-917 HVAC Equipment Schedule | AC-xx tag, room, area, indoor type, capacity, mounting height, outdoor unit location | 〃 |
+
+The project's **issue stage** (CD, SD, DD, AP, IFT, IFC, AB) selects the sheets
+using the register's "which series to issue at each stage" table. At CD only
+ID-202 is generated, as in the concept client deck. Schedules are not issued
+at AP.
+
+All sheets are A3 landscape with the register's title block fields: AALIA logo,
+project name and code, client, site address, sheet title, sheet number, scale,
+paper size, issue stage, current revision with the last four revisions and
+their descriptions, drawn/checked/approved initials, a north point on plans,
+"Do not scale", notes and a copyright line. The scale is picked automatically
+(1:20 to 1:500) so the largest level fits. The title block layout will be
+matched to the office's own title box once that file is supplied
+(`_title_block` in `app/dxf_writer.py`).
+
+## Pricing readiness
+
+Besides errors (which block generation) and warnings, the review step lists
+**pricing** items. These are the things a quantity surveyor would otherwise
+have to ask before pricing (from the 6135 KSA Salon tender checklist):
+
+- client or site address missing;
+- rooms without a number, or without floor, wall or ceiling finish codes;
+- finish codes not in the schedule, or with no material;
+- non-rectangular rooms that need manual setting-out dimensions;
+- furniture, doors and fixtures not marked New / Reuse / Modify / Relocate / Remove;
+- new items without a material;
+- AC units without capacity, outdoor unit location or mounting height
+  ("by MEP" is accepted).
+
+Register rules are checked too: revisions are letters before IFC and numbers
+from IFC, the current revision must match the revision history, checked-by is
+needed from IFT, and approved-by from IFC.
 
 ### DXF structure (for CAD users)
 - AutoCAD 2018 format, millimetres, AIA-style layers: `A-WALL`, `A-WALL-PATT`,
-  `A-DOOR`, `A-DOOR-HEAD`, `A-GLAZ`, `A-DOOR-IDEN`, `A-ANNO-DIMS`,
-  `A-ANNO-DIMS-INTR`, `A-AREA-IDEN`, `G-ROOM-NAME`, `I-FURN`, `I-FURN-IDEN`,
-  `I-CLNG`, `I-CLNG-IDEN`, `I-FLOR-PATT`, `I-FLOR-IDEN`, `G-ANNO-TTLB`.
+  `A-DOOR`, `A-DOOR-HEAD`, `A-GLAZ`, `A-DOOR-IDEN`, `A-FLOR-LEVL` (platform
+  edges), `A-FLOR-OPEN` (voids), `A-ANNO-DIMS`, `A-ANNO-DIMS-INTR`,
+  `A-AREA-IDEN`, `G-ROOM-NAME`, `I-FURN`, `I-FURN-IDEN`, `I-CLNG`,
+  `I-CLNG-IDEN`, `I-FLOR-PATT`, `I-FLOR-IDEN`, `M-HVAC-EQPM`, `M-HVAC-IDEN`,
+  `M-HVAC-DIMS`, `G-ANNO-TTLB`.
+- Levels are laid out side by side in model space, 20 m apart.
+- The CAD package download is a ZIP of the DXF plus `aalia_logo.png`. The DXF
+  references the logo by file name, so keep the two files together.
 - Everything is drawn once in model space at 1:1. Each sheet is a paper-space
   layout whose locked viewport freezes the layers that sheet should not show.
   This is the standard office workflow, so a CAD technician can carry on
@@ -95,10 +140,16 @@ the repository's `.gitignore`; generate the sample PDF from the web UI
   note that a qualified professional must check and approve them. Change the
   status in *Project info* only after that review.
 - Walls are straight segments; curved walls are not supported yet.
-- Version 1 covers plans and schedules. Elevations, sections and joinery
-  details are not generated yet. The building model already holds wall
-  heights, sill and head heights, and ceiling heights, which those sheets
-  would need.
+- Covered: plans (Series 02), the RCP (ID-301), HVAC coordination (ID-405) and
+  schedules (Series 09). Not yet generated: front matter (Series 00),
+  existing and demolition plans (Series 01), lighting layout and switching,
+  electrical and plumbing points, elevations, sections, details and joinery
+  (Series 05-08). The model already holds wall, sill, head and ceiling heights
+  for the elevation and section work.
+- AC pipe routes, condensate drains and isolators are not drawn yet; the
+  schedule records capacity and outdoor location for the MEP engineer.
+- A continuation page of a long schedule is numbered with a page suffix
+  (e.g. ID-913.2).
 - Files are stored on local disk (`CAD_DATA_DIR`, default `./data`). There is
   no login, so run it on a trusted network or put it behind the company's
   authentication before exposing it.
@@ -111,7 +162,8 @@ the repository's `.gitignore`; generate the sample PDF from the web UI
 | `app/extraction.py` | Image preparation, prompt and Claude call |
 | `app/geometry.py` | Snapping, wall outlines with openings cut (Shapely), net room areas |
 | `app/validation.py` | Errors and warnings shown in review |
-| `app/dxf_writer.py` | Layers, symbols, dimensions, sheets, title block, legends, schedules |
+| `app/dxf_writer.py` | Layers, symbols, dimensions, sheets, title block, legends, schedules, register numbering and stage rules |
+| `app/assets/aalia_logo.png` | Company logo used in the title block |
 | `app/pdf_writer.py` | Plots the DXF layouts to PDF/PNG (matplotlib, no AGPL dependencies) |
 | `app/main.py` | FastAPI endpoints and file storage |
 | `app/static/` | Web UI (plain HTML/JS, no build step) |

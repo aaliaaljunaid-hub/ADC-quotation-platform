@@ -11,6 +11,7 @@ import os
 import re
 import shutil
 import uuid
+import zipfile
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -72,7 +73,7 @@ def _status(d: Path) -> dict:
         "has_model": (d / "model.json").exists(),
         "issues": _read_json(d / "issues.json", []),
         "sheets": _read_json(out / "sheets.json", []),
-        "outputs": sorted(p.name for p in out.glob("*") if p.suffix in (".dxf", ".pdf")) if out.exists() else [],
+        "outputs": sorted(p.name for p in out.glob("*") if p.suffix in (".dxf", ".pdf", ".zip")) if out.exists() else [],
     }
 
 
@@ -220,6 +221,11 @@ def generate(pid: str):
     out.mkdir()
     slug = _safe_name(model.project.project_name or "drawings").replace(".", "_")
     doc.saveas(out / f"{slug}.dxf")
+    # the DXF references the logo by file name, so the CAD package ships both
+    with zipfile.ZipFile(out / f"{slug}_CAD.zip", "w", zipfile.ZIP_DEFLATED) as z:
+        z.write(out / f"{slug}.dxf", f"{slug}.dxf")
+        if dxf_writer.LOGO_FILE.exists():
+            z.write(dxf_writer.LOGO_FILE, dxf_writer.LOGO_FILE.name)
     pdf_writer.write_pdf(doc, names, str(out / f"{slug}.pdf"))
     sheets = []
     for i, name in enumerate(names):
@@ -235,7 +241,7 @@ def get_output(pid: str, name: str):
     path = _project_dir(pid) / "output" / _safe_name(name)
     if not path.exists():
         raise HTTPException(404, "File not found")
-    return FileResponse(path, filename=path.name if path.suffix in (".dxf", ".pdf") else None)
+    return FileResponse(path, filename=path.name if path.suffix in (".dxf", ".pdf", ".zip") else None)
 
 
 app.mount("/", StaticFiles(directory=APP_DIR / "static", html=True), name="static")
