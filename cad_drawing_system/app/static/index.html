@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ADC CAD Drawing System</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">ADC <span>CAD Drawing System</span></div>
+  <div class="topbar-note">Images → reviewed building model → DXF + PDF drawing set</div>
+</header>
+
+<div class="layout">
+  <aside class="sidebar">
+    <form id="new-project" class="new-project">
+      <input id="new-project-name" placeholder="New project name" required>
+      <button class="btn primary" type="submit">Create</button>
+    </form>
+    <ul id="project-list" class="project-list"></ul>
+  </aside>
+
+  <main id="main">
+    <section id="empty" class="empty">
+      <h1>Create or open a project</h1>
+      <p>Upload floor plans (scans, photos or PDFs) and interior renders. The AI drafts a building
+        model, you review and correct it, and the system produces an editable DXF and an issued PDF set:
+        general arrangement plan, furniture layout, reflected ceiling plan, flooring plan and schedules.</p>
+    </section>
+
+    <section id="project" hidden>
+      <div class="project-head">
+        <h1 id="project-title"></h1>
+        <button id="delete-project" class="btn ghost danger">Delete project</button>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">1</span> Upload images</h2>
+        <div class="drops">
+          <label class="drop" data-role="plan">
+            <input type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif,.pdf" hidden>
+            <strong>Floor plans</strong>
+            <span>Scans, photos or PDF of 2D plans. Dimension strings make the result far more accurate.</span>
+          </label>
+          <label class="drop" data-role="render">
+            <input type="file" multiple accept=".png,.jpg,.jpeg,.webp,.gif" hidden>
+            <strong>Renders / mood images</strong>
+            <span>Used for furniture, lighting and finishes.</span>
+          </label>
+        </div>
+        <div id="uploads" class="thumbs"></div>
+      </div>
+
+      <div class="card">
+        <h2><span class="step">2</span> AI extraction</h2>
+        <label class="field">Brief and known facts (optional, treated as correct)
+          <textarea id="brief" rows="3" placeholder="e.g. Overall width 12.0 m. Exterior walls 200 mm block. Ceiling height 2.8 m. Modern Scandinavian style, oak floors in bedrooms."></textarea>
+        </label>
+        <div class="row">
+          <button id="extract" class="btn primary">Extract building model</button>
+          <button id="sample" class="btn ghost">Load sample apartment (no API key needed)</button>
+          <span id="extract-status" class="status"></span>
+        </div>
+      </div>
+
+      <div class="card" id="review-card" hidden>
+        <h2><span class="step">3</span> Review and correct</h2>
+        <p class="hint">Check every dimension against the source images. Errors block drawing generation;
+          warnings are for your judgement. Edit values in the tables, then save.</p>
+        <div class="review">
+          <div class="preview-wrap">
+            <svg id="preview" class="preview" xmlns="http://www.w3.org/2000/svg"></svg>
+            <div class="legend-row">
+              <label><input type="checkbox" data-show="furniture" checked> Furniture</label>
+              <label><input type="checkbox" data-show="fixtures"> Ceiling</label>
+              <label><input type="checkbox" data-show="labels" checked> Labels</label>
+            </div>
+          </div>
+          <div class="issues-wrap">
+            <h3>Issues <span id="issue-count" class="pill"></span></h3>
+            <ul id="issues" class="issues"></ul>
+            <h3>AI notes &amp; assumptions</h3>
+            <ul id="notes" class="notes"></ul>
+          </div>
+        </div>
+
+        <div class="tabs" id="tabs"></div>
+        <div id="tab-body" class="tab-body"></div>
+        <div class="row sticky-actions">
+          <button id="save" class="btn primary">Save changes</button>
+          <button id="save-snap" class="btn ghost" title="Align near-identical coordinates and close wall corners">Save &amp; snap geometry</button>
+          <button id="toggle-json" class="btn ghost">Edit raw JSON</button>
+          <span id="save-status" class="status"></span>
+        </div>
+        <textarea id="json" class="json" hidden spellcheck="false"></textarea>
+      </div>
+
+      <div class="card" id="generate-card" hidden>
+        <h2><span class="step">4</span> Drawings</h2>
+        <div class="row">
+          <button id="generate" class="btn primary">Generate drawing set</button>
+          <span id="generate-status" class="status"></span>
+        </div>
+        <div id="downloads" class="downloads"></div>
+        <div id="sheets" class="sheets"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div id="lightbox" class="lightbox" hidden><img alt=""></div>
+<script src="app.js"></script>
+</body>
+</html>

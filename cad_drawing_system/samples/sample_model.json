@@ -1,0 +1,1253 @@
+{
+ "units": "mm",
+ "project": {
+  "project_name": "Sample Apartment Fit-out",
+  "client": "Sample Client",
+  "location": "Dubai, UAE",
+  "company_name": "ADC Interiors",
+  "drawn_by": "AI/ADC",
+  "checked_by": "",
+  "date": "2026-10-28",
+  "revision": "P01",
+  "status": "PRELIMINARY - NOT FOR CONSTRUCTION",
+  "project_number": "ADC-0001"
+ },
+ "walls": [
+  {
+   "id": "E1",
+   "start": {
+    "x": 0,
+    "y": 0
+   },
+   "end": {
+    "x": 12000,
+    "y": 0
+   },
+   "thickness": 200,
+   "kind": "exterior",
+   "height": 3000
+  },
+  {
+   "id": "E2",
+   "start": {
+    "x": 12000,
+    "y": 0
+   },
+   "end": {
+    "x": 12000,
+    "y": 9000
+   },
+   "thickness": 200,
+   "kind": "exterior",
+   "height": 3000
+  },
+  {
+   "id": "E3",
+   "start": {
+    "x": 12000,
+    "y": 9000
+   },
+   "end": {
+    "x": 0,
+    "y": 9000
+   },
+   "thickness": 200,
+   "kind": "exterior",
+   "height": 3000
+  },
+  {
+   "id": "E4",
+   "start": {
+    "x": 0,
+    "y": 9000
+   },
+   "end": {
+    "x": 0,
+    "y": 0
+   },
+   "thickness": 200,
+   "kind": "exterior",
+   "height": 3000
+  },
+  {
+   "id": "I1",
+   "start": {
+    "x": 0,
+    "y": 5000
+   },
+   "end": {
+    "x": 12000,
+    "y": 5000
+   },
+   "thickness": 150,
+   "kind": "interior",
+   "height": 3000
+  },
+  {
+   "id": "I2",
+   "start": {
+    "x": 7500,
+    "y": 0
+   },
+   "end": {
+    "x": 7500,
+    "y": 5000
+   },
+   "thickness": 100,
+   "kind": "partition",
+   "height": 3000
+  },
+  {
+   "id": "I3",
+   "start": {
+    "x": 4500,
+    "y": 5000
+   },
+   "end": {
+    "x": 4500,
+    "y": 9000
+   },
+   "thickness": 150,
+   "kind": "interior",
+   "height": 3000
+  },
+  {
+   "id": "I4",
+   "start": {
+    "x": 7000,
+    "y": 5000
+   },
+   "end": {
+    "x": 7000,
+    "y": 9000
+   },
+   "thickness": 150,
+   "kind": "interior",
+   "height": 3000
+  },
+  {
+   "id": "I5",
+   "start": {
+    "x": 4500,
+    "y": 6500
+   },
+   "end": {
+    "x": 7000,
+    "y": 6500
+   },
+   "thickness": 100,
+   "kind": "partition",
+   "height": 3000
+  }
+ ],
+ "openings": [
+  {
+   "id": "o1",
+   "tag": "D01",
+   "wall_id": "E1",
+   "kind": "door",
+   "offset": 5800,
+   "width": 1000,
+   "height": 2100,
+   "sill_height": 0,
+   "hinge": "end",
+   "swing": "left"
+  },
+  {
+   "id": "o2",
+   "tag": "D02",
+   "wall_id": "I1",
+   "kind": "door",
+   "offset": 5200,
+   "width": 900,
+   "height": 2100,
+   "sill_height": 0,
+   "hinge": "start",
+   "swing": "right"
+  },
+  {
+   "id": "o3",
+   "tag": "D03",
+   "wall_id": "I3",
+   "kind": "door",
+   "offset": 500,
+   "width": 900,
+   "height": 2100,
+   "sill_height": 0,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "o4",
+   "tag": "D04",
+   "wall_id": "I4",
+   "kind": "door",
+   "offset": 400,
+   "width": 900,
+   "height": 2100,
+   "sill_height": 0,
+   "hinge": "start",
+   "swing": "right"
+  },
+  {
+   "id": "o5",
+   "tag": "D05",
+   "wall_id": "I5",
+   "kind": "door",
+   "offset": 800,
+   "width": 800,
+   "height": 2100,
+   "sill_height": 0,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "o6",
+   "tag": "O01",
+   "wall_id": "I2",
+   "kind": "opening",
+   "offset": 1500,
+   "width": 1800,
+   "height": 2400,
+   "sill_height": 0,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "w1",
+   "tag": "W01",
+   "wall_id": "E1",
+   "kind": "window",
+   "offset": 1200,
+   "width": 2400,
+   "height": 1500,
+   "sill_height": 900,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "w2",
+   "tag": "W02",
+   "wall_id": "E4",
+   "kind": "window",
+   "offset": 1000,
+   "width": 2000,
+   "height": 1500,
+   "sill_height": 900,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "w3",
+   "tag": "W03",
+   "wall_id": "E3",
+   "kind": "window",
+   "offset": 1500,
+   "width": 2000,
+   "height": 1500,
+   "sill_height": 900,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "w4",
+   "tag": "W04",
+   "wall_id": "E2",
+   "kind": "window",
+   "offset": 1500,
+   "width": 1500,
+   "height": 1200,
+   "sill_height": 1050,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "w5",
+   "tag": "W05",
+   "wall_id": "E3",
+   "kind": "window",
+   "offset": 5800,
+   "width": 600,
+   "height": 600,
+   "sill_height": 1500,
+   "hinge": "start",
+   "swing": "left"
+  },
+  {
+   "id": "w6",
+   "tag": "W06",
+   "wall_id": "E4",
+   "kind": "window",
+   "offset": 6200,
+   "width": 2400,
+   "height": 2100,
+   "sill_height": 0,
+   "hinge": "start",
+   "swing": "left"
+  }
+ ],
+ "rooms": [
+  {
+   "id": "r1",
+   "name": "Living / Dining",
+   "polygon": [
+    {
+     "x": 0,
+     "y": 0
+    },
+    {
+     "x": 7500,
+     "y": 0
+    },
+    {
+     "x": 7500,
+     "y": 5000
+    },
+    {
+     "x": 0,
+     "y": 5000
+    }
+   ],
+   "floor_finish": "FL-02",
+   "ceiling_finish": "CL-01",
+   "ceiling_height": 3000
+  },
+  {
+   "id": "r2",
+   "name": "Kitchen",
+   "polygon": [
+    {
+     "x": 7500,
+     "y": 0
+    },
+    {
+     "x": 12000,
+     "y": 0
+    },
+    {
+     "x": 12000,
+     "y": 5000
+    },
+    {
+     "x": 7500,
+     "y": 5000
+    }
+   ],
+   "floor_finish": "FL-01",
+   "ceiling_finish": "CL-01",
+   "ceiling_height": 2700
+  },
+  {
+   "id": "r3",
+   "name": "Master Bedroom",
+   "polygon": [
+    {
+     "x": 0,
+     "y": 5000
+    },
+    {
+     "x": 4500,
+     "y": 5000
+    },
+    {
+     "x": 4500,
+     "y": 9000
+    },
+    {
+     "x": 0,
+     "y": 9000
+    }
+   ],
+   "floor_finish": "FL-02",
+   "ceiling_finish": "CL-01",
+   "ceiling_height": 2700
+  },
+  {
+   "id": "r4",
+   "name": "Corridor",
+   "polygon": [
+    {
+     "x": 4500,
+     "y": 5000
+    },
+    {
+     "x": 7000,
+     "y": 5000
+    },
+    {
+     "x": 7000,
+     "y": 6500
+    },
+    {
+     "x": 4500,
+     "y": 6500
+    }
+   ],
+   "floor_finish": "FL-01",
+   "ceiling_finish": "CL-01",
+   "ceiling_height": 2600
+  },
+  {
+   "id": "r5",
+   "name": "Bathroom",
+   "polygon": [
+    {
+     "x": 4500,
+     "y": 6500
+    },
+    {
+     "x": 7000,
+     "y": 6500
+    },
+    {
+     "x": 7000,
+     "y": 9000
+    },
+    {
+     "x": 4500,
+     "y": 9000
+    }
+   ],
+   "floor_finish": "FL-03",
+   "ceiling_finish": "CL-02",
+   "ceiling_height": 2400
+  },
+  {
+   "id": "r6",
+   "name": "Bedroom 2",
+   "polygon": [
+    {
+     "x": 7000,
+     "y": 5000
+    },
+    {
+     "x": 12000,
+     "y": 5000
+    },
+    {
+     "x": 12000,
+     "y": 9000
+    },
+    {
+     "x": 7000,
+     "y": 9000
+    }
+   ],
+   "floor_finish": "FL-02",
+   "ceiling_finish": "CL-01",
+   "ceiling_height": 2700
+  }
+ ],
+ "furniture": [
+  {
+   "id": "f1",
+   "tag": "F01",
+   "name": "3-seat sofa",
+   "category": "sofa",
+   "center": {
+    "x": 2200,
+    "y": 3600
+   },
+   "width": 2400,
+   "depth": 950,
+   "rotation": 0,
+   "room_id": "r1",
+   "finish": "Grey boucle fabric",
+   "source": "render 1"
+  },
+  {
+   "id": "f2",
+   "tag": "F02",
+   "name": "Coffee table",
+   "category": "coffee_table",
+   "center": {
+    "x": 2200,
+    "y": 2300
+   },
+   "width": 1200,
+   "depth": 600,
+   "rotation": 0,
+   "room_id": "r1",
+   "finish": "Walnut veneer",
+   "source": "render 1"
+  },
+  {
+   "id": "f3",
+   "tag": "F03",
+   "name": "Lounge chair",
+   "category": "armchair",
+   "center": {
+    "x": 4100,
+    "y": 2400
+   },
+   "width": 850,
+   "depth": 850,
+   "rotation": 90,
+   "room_id": "r1",
+   "finish": "Cognac leather",
+   "source": "render 1"
+  },
+  {
+   "id": "f4",
+   "tag": "F04",
+   "name": "Area rug",
+   "category": "rug",
+   "center": {
+    "x": 2300,
+    "y": 2600
+   },
+   "width": 3000,
+   "depth": 2200,
+   "rotation": 0,
+   "room_id": "r1",
+   "finish": "Wool, beige",
+   "source": "render 1"
+  },
+  {
+   "id": "f5",
+   "tag": "F05",
+   "name": "TV unit",
+   "category": "tv_unit",
+   "center": {
+    "x": 2200,
+    "y": 450
+   },
+   "width": 2000,
+   "depth": 450,
+   "rotation": 180,
+   "room_id": "r1",
+   "finish": "Oak veneer",
+   "source": "render 1"
+  },
+  {
+   "id": "f6",
+   "tag": "F06",
+   "name": "Dining table",
+   "category": "dining_table",
+   "center": {
+    "x": 5800,
+    "y": 2600
+   },
+   "width": 1800,
+   "depth": 900,
+   "rotation": 90,
+   "room_id": "r1",
+   "finish": "Oak solid",
+   "source": "render 1"
+  },
+  {
+   "id": "f7",
+   "tag": "F07",
+   "name": "Dining chair",
+   "category": "chair",
+   "center": {
+    "x": 5300,
+    "y": 2150
+   },
+   "width": 450,
+   "depth": 500,
+   "rotation": 270,
+   "room_id": "r1",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f8",
+   "tag": "F08",
+   "name": "Dining chair",
+   "category": "chair",
+   "center": {
+    "x": 5300,
+    "y": 3050
+   },
+   "width": 450,
+   "depth": 500,
+   "rotation": 270,
+   "room_id": "r1",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f9",
+   "tag": "F09",
+   "name": "Dining chair",
+   "category": "chair",
+   "center": {
+    "x": 6300,
+    "y": 2150
+   },
+   "width": 450,
+   "depth": 500,
+   "rotation": 90,
+   "room_id": "r1",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f10",
+   "tag": "F10",
+   "name": "Dining chair",
+   "category": "chair",
+   "center": {
+    "x": 6300,
+    "y": 3050
+   },
+   "width": 450,
+   "depth": 500,
+   "rotation": 90,
+   "room_id": "r1",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f11",
+   "tag": "F11",
+   "name": "Kitchen base units",
+   "category": "kitchen_counter",
+   "center": {
+    "x": 11600,
+    "y": 2500
+   },
+   "width": 4000,
+   "depth": 600,
+   "rotation": 270,
+   "room_id": "r2",
+   "finish": "Matte lacquer, quartz top",
+   "source": "render 1"
+  },
+  {
+   "id": "f12",
+   "tag": "F12",
+   "name": "Kitchen island",
+   "category": "kitchen_island",
+   "center": {
+    "x": 9600,
+    "y": 2500
+   },
+   "width": 2000,
+   "depth": 900,
+   "rotation": 90,
+   "room_id": "r2",
+   "finish": "Quartz top",
+   "source": "render 1"
+  },
+  {
+   "id": "f13",
+   "tag": "F13",
+   "name": "Refrigerator",
+   "category": "fridge",
+   "center": {
+    "x": 11550,
+    "y": 4500
+   },
+   "width": 700,
+   "depth": 700,
+   "rotation": 270,
+   "room_id": "r2",
+   "finish": "",
+   "source": "floor plan"
+  },
+  {
+   "id": "f14",
+   "tag": "F14",
+   "name": "Cooker hob",
+   "category": "cooker",
+   "center": {
+    "x": 11600,
+    "y": 3700
+   },
+   "width": 600,
+   "depth": 550,
+   "rotation": 270,
+   "room_id": "r2",
+   "finish": "",
+   "source": "floor plan"
+  },
+  {
+   "id": "f15",
+   "tag": "F15",
+   "name": "Kitchen sink",
+   "category": "sink",
+   "center": {
+    "x": 11600,
+    "y": 2200
+   },
+   "width": 800,
+   "depth": 500,
+   "rotation": 270,
+   "room_id": "r2",
+   "finish": "",
+   "source": "floor plan"
+  },
+  {
+   "id": "f16",
+   "tag": "F16",
+   "name": "King bed",
+   "category": "bed",
+   "center": {
+    "x": 2250,
+    "y": 7900
+   },
+   "width": 1800,
+   "depth": 2000,
+   "rotation": 0,
+   "room_id": "r3",
+   "finish": "Upholstered headboard",
+   "source": "render 1"
+  },
+  {
+   "id": "f17",
+   "tag": "F17",
+   "name": "Bedside table",
+   "category": "bedside_table",
+   "center": {
+    "x": 1050,
+    "y": 8600
+   },
+   "width": 450,
+   "depth": 400,
+   "rotation": 0,
+   "room_id": "r3",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f18",
+   "tag": "F18",
+   "name": "Bedside table",
+   "category": "bedside_table",
+   "center": {
+    "x": 3450,
+    "y": 8600
+   },
+   "width": 450,
+   "depth": 400,
+   "rotation": 0,
+   "room_id": "r3",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f19",
+   "tag": "F19",
+   "name": "Wardrobe",
+   "category": "wardrobe",
+   "center": {
+    "x": 4125,
+    "y": 7700
+   },
+   "width": 2200,
+   "depth": 600,
+   "rotation": 270,
+   "room_id": "r3",
+   "finish": "Oak veneer",
+   "source": "render 1"
+  },
+  {
+   "id": "f20",
+   "tag": "F20",
+   "name": "WC",
+   "category": "wc",
+   "center": {
+    "x": 5000,
+    "y": 8550
+   },
+   "width": 400,
+   "depth": 650,
+   "rotation": 0,
+   "room_id": "r5",
+   "finish": "",
+   "source": "floor plan"
+  },
+  {
+   "id": "f21",
+   "tag": "F21",
+   "name": "Basin vanity",
+   "category": "basin",
+   "center": {
+    "x": 5900,
+    "y": 8675
+   },
+   "width": 600,
+   "depth": 450,
+   "rotation": 0,
+   "room_id": "r5",
+   "finish": "",
+   "source": "floor plan"
+  },
+  {
+   "id": "f22",
+   "tag": "F22",
+   "name": "Shower",
+   "category": "shower",
+   "center": {
+    "x": 6525,
+    "y": 7000
+   },
+   "width": 800,
+   "depth": 850,
+   "rotation": 0,
+   "room_id": "r5",
+   "finish": "",
+   "source": "floor plan"
+  },
+  {
+   "id": "f23",
+   "tag": "F23",
+   "name": "Double bed",
+   "category": "bed",
+   "center": {
+    "x": 9750,
+    "y": 7900
+   },
+   "width": 1500,
+   "depth": 2000,
+   "rotation": 0,
+   "room_id": "r6",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f24",
+   "tag": "F24",
+   "name": "Study desk",
+   "category": "desk",
+   "center": {
+    "x": 7375,
+    "y": 8000
+   },
+   "width": 1200,
+   "depth": 600,
+   "rotation": 90,
+   "room_id": "r6",
+   "finish": "Oak veneer",
+   "source": "render 1"
+  },
+  {
+   "id": "f25",
+   "tag": "F25",
+   "name": "Office chair",
+   "category": "office_chair",
+   "center": {
+    "x": 7950,
+    "y": 8000
+   },
+   "width": 500,
+   "depth": 500,
+   "rotation": 90,
+   "room_id": "r6",
+   "finish": "",
+   "source": "render 1"
+  },
+  {
+   "id": "f26",
+   "tag": "F26",
+   "name": "Wardrobe",
+   "category": "wardrobe",
+   "center": {
+    "x": 10250,
+    "y": 5375
+   },
+   "width": 2400,
+   "depth": 600,
+   "rotation": 180,
+   "room_id": "r6",
+   "finish": "Oak veneer",
+   "source": "render 1"
+  }
+ ],
+ "ceiling_fixtures": [
+  {
+   "id": "c1",
+   "kind": "downlight",
+   "position": {
+    "x": 1000,
+    "y": 1200
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c2",
+   "kind": "downlight",
+   "position": {
+    "x": 1000,
+    "y": 3800
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c3",
+   "kind": "downlight",
+   "position": {
+    "x": 2500,
+    "y": 1200
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c4",
+   "kind": "downlight",
+   "position": {
+    "x": 2500,
+    "y": 3800
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c5",
+   "kind": "downlight",
+   "position": {
+    "x": 4000,
+    "y": 1200
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c6",
+   "kind": "downlight",
+   "position": {
+    "x": 4000,
+    "y": 3800
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c7",
+   "kind": "pendant",
+   "position": {
+    "x": 5800,
+    "y": 2300
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c8",
+   "kind": "pendant",
+   "position": {
+    "x": 5800,
+    "y": 2900
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c9",
+   "kind": "linear_light",
+   "position": {
+    "x": 9600,
+    "y": 2500
+   },
+   "length": 1800,
+   "rotation": 90,
+   "room_id": "r2"
+  },
+  {
+   "id": "c10",
+   "kind": "downlight",
+   "position": {
+    "x": 8300,
+    "y": 1000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r2"
+  },
+  {
+   "id": "c11",
+   "kind": "downlight",
+   "position": {
+    "x": 8300,
+    "y": 4000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r2"
+  },
+  {
+   "id": "c12",
+   "kind": "downlight",
+   "position": {
+    "x": 10800,
+    "y": 1000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r2"
+  },
+  {
+   "id": "c13",
+   "kind": "downlight",
+   "position": {
+    "x": 10800,
+    "y": 4000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r2"
+  },
+  {
+   "id": "c14",
+   "kind": "ac_supply",
+   "position": {
+    "x": 3000,
+    "y": 2500
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c15",
+   "kind": "ac_return",
+   "position": {
+    "x": 6800,
+    "y": 4300
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r1"
+  },
+  {
+   "id": "c16",
+   "kind": "smoke_detector",
+   "position": {
+    "x": 5750,
+    "y": 5750
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r4"
+  },
+  {
+   "id": "c17",
+   "kind": "downlight",
+   "position": {
+    "x": 5150,
+    "y": 5750
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r4"
+  },
+  {
+   "id": "c18",
+   "kind": "downlight",
+   "position": {
+    "x": 6350,
+    "y": 5750
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r4"
+  },
+  {
+   "id": "c19",
+   "kind": "exhaust_fan",
+   "position": {
+    "x": 5750,
+    "y": 7700
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r5"
+  },
+  {
+   "id": "c20",
+   "kind": "downlight",
+   "position": {
+    "x": 5150,
+    "y": 7300
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r5"
+  },
+  {
+   "id": "c21",
+   "kind": "downlight",
+   "position": {
+    "x": 6350,
+    "y": 8300
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r5"
+  },
+  {
+   "id": "c22",
+   "kind": "ac_supply",
+   "position": {
+    "x": 2250,
+    "y": 6200
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r3"
+  },
+  {
+   "id": "c23",
+   "kind": "smoke_detector",
+   "position": {
+    "x": 1200,
+    "y": 6000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r3"
+  },
+  {
+   "id": "c24",
+   "kind": "downlight",
+   "position": {
+    "x": 1100,
+    "y": 6000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r3"
+  },
+  {
+   "id": "c25",
+   "kind": "downlight",
+   "position": {
+    "x": 1100,
+    "y": 8000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r3"
+  },
+  {
+   "id": "c26",
+   "kind": "downlight",
+   "position": {
+    "x": 3400,
+    "y": 6000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r3"
+  },
+  {
+   "id": "c27",
+   "kind": "downlight",
+   "position": {
+    "x": 3400,
+    "y": 8000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r3"
+  },
+  {
+   "id": "c28",
+   "kind": "downlight",
+   "position": {
+    "x": 8200,
+    "y": 6000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r6"
+  },
+  {
+   "id": "c29",
+   "kind": "downlight",
+   "position": {
+    "x": 8200,
+    "y": 8000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r6"
+  },
+  {
+   "id": "c30",
+   "kind": "downlight",
+   "position": {
+    "x": 10800,
+    "y": 6000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r6"
+  },
+  {
+   "id": "c31",
+   "kind": "downlight",
+   "position": {
+    "x": 10800,
+    "y": 8000
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r6"
+  },
+  {
+   "id": "c32",
+   "kind": "ac_supply",
+   "position": {
+    "x": 9750,
+    "y": 6200
+   },
+   "length": 0,
+   "rotation": 0,
+   "room_id": "r6"
+  }
+ ],
+ "finishes": [
+  {
+   "code": "FL-01",
+   "category": "floor",
+   "description": "Porcelain tile 600x600 matt",
+   "material": "Porcelain, light beige",
+   "notes": "2 mm joints, colour-matched grout"
+  },
+  {
+   "code": "FL-02",
+   "category": "floor",
+   "description": "Engineered oak flooring",
+   "material": "Oak, natural oil, 190 mm boards",
+   "notes": "On acoustic underlay"
+  },
+  {
+   "code": "FL-03",
+   "category": "floor",
+   "description": "Anti-slip porcelain tile 300x300",
+   "material": "Porcelain R11, grey",
+   "notes": "Fall to floor drain"
+  },
+  {
+   "code": "CL-01",
+   "category": "ceiling",
+   "description": "Gypsum board ceiling, painted white",
+   "material": "12.5 mm gypsum board",
+   "notes": "Matt emulsion"
+  },
+  {
+   "code": "CL-02",
+   "category": "ceiling",
+   "description": "Moisture resistant gypsum ceiling",
+   "material": "12.5 mm MR board",
+   "notes": "Anti-mould paint"
+  }
+ ],
+ "extraction_notes": [
+  "Sample model for testing - not extracted from an image."
+ ]
+}
